@@ -1,0 +1,151 @@
+/* ============================================================================
+   ПЯТЬ НОЧЕЙ НА ПРОДЕ — Industrial CRT & Switchboard Styling
+   ============================================================================ */
+
+:root {
+  --bg-dark: #07090d;
+  --panel-bg: #11161f;
+  --panel-border: #263142;
+  --metal-dark: #181e29;
+  --crt-green: #22c55e;
+  --crt-amber: #f59e0b;
+  --crt-red: #ef4444;
+  --crt-cyan: #06b6d4;
+}
+
+* {
+  box-sizing: border-box;
+  user-select: none;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  background-color: var(--bg-dark);
+  color: #e2e8f0;
+  font-family: 'Courier New', Consolas, monospace;
+  overflow-x: hidden;
+}
+
+/* Scanline overlay for authentic CRT server room feel */
+.scanlines {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 45;
+  background: repeating-linear-gradient(
+    to bottom,
+    rgba(255, 255, 255, 0),
+    rgba(255, 255, 255, 0) 2px,
+    rgba(0, 0, 0, 0.22) 3px,
+    rgba(0, 0, 0, 0.22) 4px
+  );
+}
+
+/* Physical Toggle Switch Styling */
+.rocker-switch {
+  position: relative;
+  width: 58px;
+  height: 86px;
+  background: linear-gradient(180deg, #0b0f17 0%, #1e293b 50%, #0b0f17 100%);
+  border: 2px solid #334155;
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 4px;
+  box-shadow: inset 0 0 10px rgba(0,0,0,0.85), 0 4px 8px rgba(0,0,0,0.6);
+  transition: transform 0.08s ease, border-color 0.15s ease;
+}
+
+.rocker-switch:active {
+  transform: scale(0.96);
+}
+
+.rocker-switch.active-green {
+  border-color: #22c55e;
+  box-shadow: 0 0 14px rgba(34, 197, 94, 0.35), inset 0 0 10px rgba(0,0,0,0.85);
+}
+
+.rocker-switch.active-red {
+  border-color: #ef4444;
+  box-shadow: 0 0 14px rgba(239, 68, 68, 0.45), inset 0 0 10px rgba(0,0,0,0.85);
+}
+
+.rocker-switch.active-cyan {
+  border-color: #06b6d4;
+  box-shadow: 0 0 14px rgba(6, 182, 212, 0.45), inset 0 0 10px rgba(0,0,0,0.85);
+}
+
+.lever-knob {
+  width: 38px;
+  height: 34px;
+  border-radius: 5px;
+  background: linear-gradient(180deg, #64748b 0%, #334155 100%);
+  border: 1px solid #94a3b8;
+  box-shadow: 0 3px 6px rgba(0,0,0,0.7);
+  transition: all 0.12s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.rocker-switch.on .lever-knob {
+  transform: translateY(-2px);
+  background: linear-gradient(180deg, #4ade80 0%, #16a34a 100%);
+  border-color: #bbf7d0;
+  box-shadow: 0 0 10px rgba(74, 222, 128, 0.65);
+}
+
+.rocker-switch.on-danger .lever-knob {
+  transform: translateY(-2px);
+  background: linear-gradient(180deg, #f87171 0%, #dc2626 100%);
+  border-color: #fecaca;
+  box-shadow: 0 0 10px rgba(248, 113, 113, 0.7);
+}
+
+.rocker-switch.off .lever-knob {
+  transform: translateY(28px);
+}
+
+/* Pulse and Shake Animations */
+@keyframes shake-mild {
+  0%, 100% { transform: translate(0, 0); }
+  25% { transform: translate(-2px, 1px); }
+  50% { transform: translate(2px, -1px); }
+  75% { transform: translate(-1px, -2px); }
+}
+
+@keyframes shake-violent {
+  0% { transform: translate(0, 0) rotate(0deg) scale(1); }
+  10% { transform: translate(-14px, -10px) rotate(-3deg) scale(1.06); }
+  20% { transform: translate(14px, 8px) rotate(3deg) scale(0.97); }
+  30% { transform: translate(-16px, 12px) rotate(-4deg) scale(1.08); }
+  40% { transform: translate(12px, -12px) rotate(4deg) scale(1.02); }
+  50% { transform: translate(-12px, 6px) rotate(-2deg) scale(1.1); }
+  60% { transform: translate(16px, 10px) rotate(3deg) scale(0.98); }
+  70% { transform: translate(-14px, -8px) rotate(-4deg) scale(1.07); }
+  80% { transform: translate(10px, 12px) rotate(2deg) scale(1.04); }
+  90% { transform: translate(-8px, -6px) rotate(-2deg) scale(1.09); }
+  100% { transform: translate(0, 0) rotate(0deg) scale(1); }
+}
+
+@keyframes strobe-flash {
+  0%, 100% { background-color: rgba(220, 38, 38, 0.92); filter: invert(0); }
+  25% { background-color: rgba(0, 0, 0, 0.98); filter: invert(1) hue-rotate(90deg); }
+  50% { background-color: rgba(255, 255, 255, 0.95); filter: contrast(300%); }
+  75% { background-color: rgba(153, 27, 27, 0.96); filter: invert(0); }
+}
+
+.pukan-boiling {
+  animation: shake-mild 0.14s infinite;
+}
+
+.jumpscare-active {
+  animation: shake-violent 0.18s infinite, strobe-flash 0.14s infinite;
+}
+
+/* Glitch popup styling for Hack Counter > 0 */
+.hack-glitch-overlay {
+  pointer-events: none;
+  mix-blend-mode: screen;
+}
