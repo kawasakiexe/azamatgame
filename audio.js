@@ -1,5 +1,5 @@
 // ============================================================================
-// ПЯТЬ НОЧЕЙ НА ПРОДЕ — Advanced Procedural Horror Audio Engine
+// DEVOPS NIGHTMARE — Advanced Procedural Horror Audio Engine
 // Real-time Web Audio API synthesis: Cozy crickets & rain from Alfred-Game,
 // Low bowed cello dread notes, monster cues, gas leaks, and razor-sharp screamers.
 // ============================================================================

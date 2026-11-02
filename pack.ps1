@@ -1,6 +1,6 @@
 # ============================================================================
 # Скрипт автоматической сборки ZIP-архива для офлайн-передачи
-# Создаёт архив dist/five-nights-at-prod.zip со всеми нужными файлами игры
+# Создаёт архив dist/devops-nightmare.zip со всеми нужными файлами игры
 # ============================================================================
 
 $projectDir = $PSScriptRoot
@@ -21,7 +21,7 @@ $files = @(
     (Join-Path $projectDir "README.md")
 )
 
-$zipPath = Join-Path $distDir "five-nights-at-prod.zip"
+$zipPath = Join-Path $distDir "devops-nightmare.zip"
 if (Test-Path $zipPath) {
     Remove-Item $zipPath -Force
 }

@@ -1,5 +1,5 @@
 // ============================================================================
-// ПЯТЬ НОЧЕЙ НА ПРОДЕ — Core Game Engine (PS1 3D Edition)
+// DEVOPS NIGHTMARE — Core Game Engine (PS1 3D Edition)
 // Daytime Lobby, Birdsong, Easter Egg Cabinet, Secondary Puzzle Objectives,
 // Coin Wallet (Max 3), Nishtyak Shop & Buffs, and 360° Mouse Controls.
 // ============================================================================
