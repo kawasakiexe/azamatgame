@@ -56,6 +56,23 @@ class View3D {
     this.ventGrate = null;
     this.burgundyTail = null;
 
+    // Interactive Cabinet ("AZAMAT SASI")
+    this.cabinetGroup = null;
+    this.cabinetDoorGroup = null;
+    this.cabinetOpen = false;
+    this.targetCabinetAngle = 0;
+
+    // Desk Props (Easter Eggs)
+    this.rubberDuck = null;
+    this.coffeeMug = null;
+
+    // Daytime Lobby vs Night Environment
+    this.isDaytime = true;
+    this.daySkyPlane = null;
+    this.nightSkyPlane = null;
+    this.ambientLight = null;
+    this.sunLight = null;
+
     // Lighting
     this.officeLight = null;
     this.leftSpotlight = null;
@@ -123,12 +140,17 @@ class View3D {
     // 4. Build 360 Office Room, Starry Sky Window, Desk, Doors & Monsters
     this._buildOffice();
     this._buildStarryBackWindow();
+    this._buildInteractiveCabinet();
     this._buildDesk();
     this._buildMonsters();
     this._setupLighting();
 
     // 5. Setup Listeners
     this._setupListeners();
+
+    // 6. Set initial daytime/lobby environment
+    const isDay = window.prodGame ? window.prodGame.inLobby : true;
+    this.setDaytime(isDay);
 
     this.initialized = true;
     this.animate();
@@ -351,13 +373,73 @@ class View3D {
     sctx.fill();
 
     const skyTex = new THREE.CanvasTexture(skyCanvas);
-    const skyPlane = new THREE.Mesh(
+    this.nightSkyPlane = new THREE.Mesh(
       new THREE.PlaneGeometry(16, 7),
       new THREE.MeshBasicMaterial({ map: skyTex })
     );
-    skyPlane.position.set(0, 2.5, 7.5); // outside in the distance
-    skyPlane.rotation.y = Math.PI;
-    this.scene.add(skyPlane);
+    this.nightSkyPlane.position.set(0, 2.5, 7.5); // outside in the distance
+    this.nightSkyPlane.rotation.y = Math.PI;
+    this.nightSkyPlane.visible = false;
+    this.scene.add(this.nightSkyPlane);
+
+    // B. Bright Daytime Sky Backdrop outside window (Sun, Clouds, Green trees)
+    const dayCanvas = document.createElement('canvas');
+    dayCanvas.width = 512;
+    dayCanvas.height = 256;
+    const dctx = dayCanvas.getContext('2d');
+    const dGrad = dctx.createLinearGradient(0, 0, 0, 256);
+    dGrad.addColorStop(0, '#0284c7');
+    dGrad.addColorStop(0.5, '#38bdf8');
+    dGrad.addColorStop(0.85, '#bae6fd');
+    dGrad.addColorStop(1, '#f0f9ff');
+    dctx.fillStyle = dGrad;
+    dctx.fillRect(0, 0, 512, 256);
+
+    // Radiant Morning Sun
+    const sunGrad = dctx.createRadialGradient(160, 60, 5, 160, 60, 55);
+    sunGrad.addColorStop(0, '#ffffff');
+    sunGrad.addColorStop(0.35, '#fef08a');
+    sunGrad.addColorStop(1, 'rgba(254, 240, 138, 0)');
+    dctx.fillStyle = sunGrad;
+    dctx.beginPath();
+    dctx.arc(160, 60, 55, 0, Math.PI * 2);
+    dctx.fill();
+
+    // Fluffy PS1-style Clouds
+    dctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+    const drawCloud = (cx, cy, s) => {
+      dctx.beginPath();
+      dctx.arc(cx, cy, 22 * s, 0, Math.PI * 2);
+      dctx.arc(cx + 25 * s, cy - 8 * s, 28 * s, 0, Math.PI * 2);
+      dctx.arc(cx + 55 * s, cy - 4 * s, 24 * s, 0, Math.PI * 2);
+      dctx.arc(cx + 75 * s, cy + 5 * s, 18 * s, 0, Math.PI * 2);
+      dctx.fill();
+    };
+    drawCloud(60, 95, 0.8);
+    drawCloud(280, 75, 1.1);
+    drawCloud(420, 110, 0.7);
+
+    // Lush Green Hills & Pines on the horizon
+    dctx.fillStyle = '#15803d';
+    dctx.beginPath();
+    dctx.moveTo(0, 256);
+    for (let x = 0; x <= 512; x += 24) {
+      const h = 35 + Math.sin(x * 0.05) * 18 + Math.cos(x * 0.1) * 8;
+      dctx.lineTo(x, 256 - h);
+    }
+    dctx.lineTo(512, 256);
+    dctx.closePath();
+    dctx.fill();
+
+    const dayTex = new THREE.CanvasTexture(dayCanvas);
+    this.daySkyPlane = new THREE.Mesh(
+      new THREE.PlaneGeometry(16, 7),
+      new THREE.MeshBasicMaterial({ map: dayTex })
+    );
+    this.daySkyPlane.position.set(0, 2.5, 7.5);
+    this.daySkyPlane.rotation.y = Math.PI;
+    this.daySkyPlane.visible = true;
+    this.scene.add(this.daySkyPlane);
 
     // =======================================================================
     // ELECTRICAL CIRCUIT BREAKER BOX (On back wall, for blackout repairs!)
@@ -383,6 +465,109 @@ class View3D {
     this.breakerLever.userData = { action: 'flipBreaker', hint: 'Врубить рубильник [КЛИК]' };
     breakerBoxGroup.add(this.breakerLever);
     this.interactables.push(this.breakerLever);
+  }
+
+  // =========================================================================
+  // INTERACTIVE LOCKER / CABINET WITH "AZAMAT SASI" EASTER EGG NOTE
+  // =========================================================================
+  _buildInteractiveCabinet() {
+    this.cabinetGroup = new THREE.Group();
+    // Positioned on the back wall to the left of the window (x = -4.2, y = 1.35, z = 4.15)
+    this.cabinetGroup.position.set(-4.2, 1.35, 4.15);
+    this.cabinetGroup.rotation.y = Math.PI;
+    this.officeGroup.add(this.cabinetGroup);
+
+    // Cabinet Outer Metal Frame / Locker Shell
+    const lockerMat = new THREE.MeshLambertMaterial({ color: 0x1e293b });
+    const lockerBack = new THREE.Mesh(new THREE.BoxGeometry(0.88, 2.65, 0.04), lockerMat);
+    lockerBack.position.set(0, 0, 0.3);
+    this.cabinetGroup.add(lockerBack);
+
+    const lockerTop = new THREE.Mesh(new THREE.BoxGeometry(0.88, 0.04, 0.62), lockerMat);
+    lockerTop.position.set(0, 1.31, 0);
+    this.cabinetGroup.add(lockerTop);
+
+    const lockerBottom = new THREE.Mesh(new THREE.BoxGeometry(0.88, 0.04, 0.62), lockerMat);
+    lockerBottom.position.set(0, -1.31, 0);
+    this.cabinetGroup.add(lockerBottom);
+
+    const lockerSideL = new THREE.Mesh(new THREE.BoxGeometry(0.04, 2.65, 0.62), lockerMat);
+    lockerSideL.position.set(-0.43, 0, 0);
+    this.cabinetGroup.add(lockerSideL);
+
+    const lockerSideR = new THREE.Mesh(new THREE.BoxGeometry(0.04, 2.65, 0.62), lockerMat);
+    lockerSideR.position.set(0.43, 0, 0);
+    this.cabinetGroup.add(lockerSideR);
+
+    // Middle shelf
+    const lockerShelf = new THREE.Mesh(new THREE.BoxGeometry(0.86, 0.03, 0.58), lockerMat);
+    lockerShelf.position.set(0, -0.2, 0);
+    this.cabinetGroup.add(lockerShelf);
+
+    // Pinned Note: "AZAMAT SASI" with funny smiley and red pin
+    const noteCanvas = document.createElement('canvas');
+    noteCanvas.width = 256;
+    noteCanvas.height = 256;
+    const nctx = noteCanvas.getContext('2d');
+    nctx.fillStyle = '#fef9c3'; // light yellow sticky/crumpled paper
+    nctx.fillRect(0, 0, 256, 256);
+    nctx.strokeStyle = '#ca8a04';
+    nctx.lineWidth = 6;
+    nctx.strokeRect(6, 6, 244, 244);
+
+    // Red push pin
+    nctx.fillStyle = '#ef4444';
+    nctx.beginPath();
+    nctx.arc(128, 26, 12, 0, Math.PI * 2);
+    nctx.fill();
+
+    // Bold text
+    nctx.fillStyle = '#dc2626';
+    nctx.font = 'bold 36px monospace';
+    nctx.textAlign = 'center';
+    nctx.fillText('AZAMAT', 128, 90);
+    nctx.fillText('SASI', 128, 140);
+
+    nctx.fillStyle = '#0f172a';
+    nctx.font = 'bold 26px sans-serif';
+    nctx.fillText('( ͡° ͜ʖ ͡°)', 128, 188);
+
+    nctx.fillStyle = '#475569';
+    nctx.font = 'bold 15px monospace';
+    nctx.fillText('ПРОД НЕ УПАДЁТ!', 128, 228);
+
+    const noteTex = new THREE.CanvasTexture(noteCanvas);
+    const noteMesh = new THREE.Mesh(
+      new THREE.PlaneGeometry(0.58, 0.58),
+      new THREE.MeshBasicMaterial({ map: noteTex })
+    );
+    noteMesh.position.set(0, 0.45, 0.27);
+    this.cabinetGroup.add(noteMesh);
+
+    // Hinged Cabinet Door (Pivots from left hinge at x = -0.42, z = -0.3)
+    this.cabinetDoorGroup = new THREE.Group();
+    this.cabinetDoorGroup.position.set(-0.43, 0, -0.3);
+    this.cabinetGroup.add(this.cabinetDoorGroup);
+
+    const doorMat = new THREE.MeshLambertMaterial({ color: 0x334155 });
+    const doorLeaf = new THREE.Mesh(new THREE.BoxGeometry(0.85, 2.6, 0.04), doorMat);
+    doorLeaf.position.set(0.425, 0, 0); // leaf offset relative to hinge
+    this.cabinetDoorGroup.add(doorLeaf);
+
+    // Door Handle
+    const handleMat = new THREE.MeshLambertMaterial({ color: 0x94a3b8 });
+    const handle = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.28, 0.08), handleMat);
+    handle.position.set(0.8, 0, -0.04);
+    doorLeaf.add(handle);
+
+    // Click target on cabinet door
+    doorLeaf.userData = { action: 'toggleCabinet', hint: '🚪 Шкафчик дежурного [КЛИК]' };
+    this.interactables.push(doorLeaf);
+  }
+
+  setCabinetOpen(isOpen) {
+    this.cabinetOpen = !!isOpen;
+    this.targetCabinetAngle = this.cabinetOpen ? -Math.PI * 0.58 : 0;
   }
 
   _buildLeftDoorway() {
@@ -645,6 +830,62 @@ class View3D {
     this.pukanDialNeedle.position.set(0, 0.07, 0);
     this.pukanDialNeedle.rotation.x = -Math.PI / 2;
     gaugeGroup.add(this.pukanDialNeedle);
+
+    // 6. Yellow Rubber Duck (Desk Easter Egg / Pukan cooling)
+    this.rubberDuck = new THREE.Group();
+    this.rubberDuck.position.set(-0.65, 1.02, 0.35);
+    deskGroup.add(this.rubberDuck);
+
+    const duckMat = new THREE.MeshLambertMaterial({ color: 0xfacc15 }); // bright rubber yellow
+    const duckBody = new THREE.Mesh(new THREE.SphereGeometry(0.09, 8, 8), duckMat);
+    duckBody.scale.set(1, 0.85, 1.25);
+    duckBody.position.y = 0.08;
+    this.rubberDuck.add(duckBody);
+
+    const duckHead = new THREE.Mesh(new THREE.SphereGeometry(0.065, 8, 8), duckMat);
+    duckHead.position.set(0, 0.17, 0.05);
+    this.rubberDuck.add(duckHead);
+
+    const beakMat = new THREE.MeshLambertMaterial({ color: 0xf97316 }); // orange beak
+    const beak = new THREE.Mesh(new THREE.ConeGeometry(0.03, 0.06, 6), beakMat);
+    beak.rotation.x = Math.PI * 0.45;
+    beak.position.set(0, 0.16, 0.12);
+    this.rubberDuck.add(beak);
+
+    const eyeMat = new THREE.MeshBasicMaterial({ color: 0x0f172a });
+    const eyeL = new THREE.Mesh(new THREE.SphereGeometry(0.012, 6, 6), eyeMat);
+    eyeL.position.set(-0.035, 0.18, 0.09);
+    this.rubberDuck.add(eyeL);
+    const eyeR = new THREE.Mesh(new THREE.SphereGeometry(0.012, 6, 6), eyeMat);
+    eyeR.position.set(0.035, 0.18, 0.09);
+    this.rubberDuck.add(eyeR);
+
+    duckBody.userData = { action: 'clickDuck', hint: '🦆 Крякнуть резиновой уточкой [КЛИК]' };
+    duckHead.userData = { action: 'clickDuck', hint: '🦆 Крякнуть резиновой уточкой [КЛИК]' };
+    this.interactables.push(duckBody, duckHead);
+
+    // 7. Coffee Mug (Desk Easter Egg / Power boost)
+    this.coffeeMug = new THREE.Group();
+    this.coffeeMug.position.set(0.65, 1.02, 0.35);
+    deskGroup.add(this.coffeeMug);
+
+    const mugMat = new THREE.MeshLambertMaterial({ color: 0x38bdf8 }); // dev cyan ceramic
+    const mugCup = new THREE.Mesh(new THREE.CylinderGeometry(0.075, 0.065, 0.15, 12), mugMat);
+    mugCup.position.y = 0.08;
+    this.coffeeMug.add(mugCup);
+
+    const coffeeMat = new THREE.MeshBasicMaterial({ color: 0x2b1509 }); // dark coffee
+    const coffeeLiquid = new THREE.Mesh(new THREE.CylinderGeometry(0.065, 0.065, 0.01, 10), coffeeMat);
+    coffeeLiquid.position.y = 0.14;
+    this.coffeeMug.add(coffeeLiquid);
+
+    const handleMat = new THREE.MeshLambertMaterial({ color: 0x38bdf8 });
+    const handle = new THREE.Mesh(new THREE.TorusGeometry(0.045, 0.015, 6, 8, Math.PI), handleMat);
+    handle.position.set(0.075, 0.08, 0);
+    this.coffeeMug.add(handle);
+
+    mugCup.userData = { action: 'drinkCoffee', hint: '☕ Выпить бодрящий кофе [КЛИК]' };
+    this.interactables.push(mugCup);
   }
 
   // =========================================================================
@@ -782,8 +1023,8 @@ class View3D {
 
   _setupLighting() {
     // Ambient light
-    const ambient = new THREE.AmbientLight(0x0a101d, 0.7);
-    this.scene.add(ambient);
+    this.ambientLight = new THREE.AmbientLight(0x0a101d, 0.7);
+    this.scene.add(this.ambientLight);
 
     // Overhead Office Fluorescent Light
     this.officeLight = new THREE.PointLight(0xe2e8f0, 1.5, 14, 1.8);
@@ -796,6 +1037,13 @@ class View3D {
     this.nightSkyLight.target.position.set(0, 1.5, 0);
     this.scene.add(this.nightSkyLight);
     this.scene.add(this.nightSkyLight.target);
+
+    // Warm natural sunlight from window during daytime
+    this.sunLight = new THREE.DirectionalLight(0xfef08a, 0.0);
+    this.sunLight.position.set(0, 3.5, 7.5);
+    this.sunLight.target.position.set(0, 1.2, 0);
+    this.scene.add(this.sunLight);
+    this.scene.add(this.sunLight.target);
 
     // Spotlights for doors
     this.leftSpotlight = new THREE.SpotLight(0xffffff, 0, 15, Math.PI / 4, 0.4);
@@ -814,6 +1062,48 @@ class View3D {
     this.alarmStrobe = new THREE.PointLight(0xef4444, 0, 16, 1.5);
     this.alarmStrobe.position.set(0, 3.4, 0);
     this.scene.add(this.alarmStrobe);
+  }
+
+  setDaytime(isDay) {
+    this.isDaytime = !!isDay;
+    if (this.daySkyPlane && this.nightSkyPlane) {
+      this.daySkyPlane.visible = this.isDaytime;
+      this.nightSkyPlane.visible = !this.isDaytime;
+    }
+
+    if (this.ambientLight) {
+      if (this.isDaytime) {
+        this.ambientLight.color.setHex(0xffffff);
+        this.ambientLight.intensity = 1.05;
+      } else {
+        this.ambientLight.color.setHex(0x0a101d);
+        this.ambientLight.intensity = 0.7;
+      }
+    }
+
+    if (this.sunLight) {
+      this.sunLight.intensity = this.isDaytime ? 1.6 : 0.0;
+    }
+
+    if (this.nightSkyLight) {
+      this.nightSkyLight.intensity = this.isDaytime ? 0.0 : 0.65;
+    }
+
+    if (this.officeLight) {
+      this.officeLight.intensity = this.isDaytime ? 0.75 : 1.45;
+    }
+
+    if (this.alarmStrobe && this.isDaytime) {
+      this.alarmStrobe.intensity = 0;
+    }
+
+    // Hide all monsters during daytime
+    if (this.isDaytime) {
+      if (this.monsters3D.distortion) this.monsters3D.distortion.visible = false;
+      if (this.monsters3D.tadpole) this.monsters3D.tadpole.visible = false;
+      if (this.monsters3D.trojan) this.monsters3D.trojan.visible = false;
+      if (this.monsters3D.burgundy) this.monsters3D.burgundy.visible = false;
+    }
   }
 
   // =========================================================================
@@ -895,7 +1185,7 @@ class View3D {
 
     // Clicks on 3D objects
     this.container.addEventListener('click', () => {
-      if (!window.prodGame || !window.prodGame.running || window.prodGame.cctvOpen) return;
+      if (!window.prodGame || (!window.prodGame.running && !window.prodGame.inLobby) || window.prodGame.cctvOpen) return;
       this.raycaster.setFromCamera(this.mouseVec, this.camera);
       const hits = this.raycaster.intersectObjects(this.interactables, true);
       if (hits.length > 0) {
@@ -910,7 +1200,10 @@ class View3D {
 
   _handleAction(action) {
     if (!window.prodGame) return;
-    if (action === 'toggleGateLeft') window.prodGame.toggleSwitch('gateLeft');
+    if (action === 'toggleCabinet') window.prodGame.toggleCabinet();
+    else if (action === 'clickDuck') window.prodGame.clickRubberDuck();
+    else if (action === 'drinkCoffee') window.prodGame.drinkCoffee();
+    else if (action === 'toggleGateLeft') window.prodGame.toggleSwitch('gateLeft');
     else if (action === 'toggleGateRight') window.prodGame.toggleSwitch('gateRight');
     else if (action === 'pingLeft') window.prodGame.pingPort('left');
     else if (action === 'pingRight') window.prodGame.pingPort('right');
@@ -1077,6 +1370,11 @@ class View3D {
       this._updateMonsters3D(time);
     }
 
+    // Cabinet door animation (smooth swing open/close)
+    if (this.cabinetDoorGroup) {
+      this.cabinetDoorGroup.rotation.y += (this.targetCabinetAngle - this.cabinetDoorGroup.rotation.y) * 0.15;
+    }
+
     // 4. Jumpscare Animation vs CCTV vs 360 Office Camera
     if (this.jumpscareActive) {
       this.jumpscareTimer += dt;
@@ -1113,6 +1411,13 @@ class View3D {
   }
 
   _updateMonsters3D(time) {
+    if (this.isDaytime) {
+      if (this.monsters3D.distortion) this.monsters3D.distortion.visible = false;
+      if (this.monsters3D.tadpole) this.monsters3D.tadpole.visible = false;
+      if (this.monsters3D.trojan) this.monsters3D.trojan.visible = false;
+      if (this.monsters3D.burgundy) this.monsters3D.burgundy.visible = false;
+      return;
+    }
     const g = window.prodGame;
     if (!g) return;
 

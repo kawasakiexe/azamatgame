@@ -1,7 +1,7 @@
 // ============================================================================
-// ПЯТЬ НОЧЕЙ НА ПРОДЕ — Core Game Engine (FNaF 3D Horror & IT Satire)
-// 4 Unique Monsters (Distortion Giant, Bug-Tadpole, Trojan T-Pose, Burgundy Vent Stalker)
-// Environmental Hazards (Gas Valve, Blackouts & Circuit Breaker, 3D Bio-Carrot Printer)
+// ПЯТЬ НОЧЕЙ НА ПРОДЕ — Core Game Engine (PS1 3D Edition)
+// Daytime Lobby, Birdsong, Easter Egg Cabinet, Secondary Puzzle Objectives,
+// Coin Wallet (Max 3), Nishtyak Shop & Buffs, and 360° Mouse Controls.
 // ============================================================================
 
 const SHIFT_CONFIGS = {
@@ -11,11 +11,13 @@ const SHIFT_CONFIGS = {
     dipInterval: 28,
     dipTimeout: 16,
     patchSpeed: 1.6,
-    basePowerDrain: 0.13,
-    trojanSpeed: 1.2,
+    basePowerDrain: 0.12,
+    trojanSpeed: 1.1,
     gasEnabled: false,
     blackoutChance: 0.0,
-    phoneGuyMsg: '«Алло, джун! Добро пожаловать в ад. По коридорам бродят не просто вирусы, а сущие твари. Если в окне покажется гигантский тёмный урод с дисторшеном — НЕ СМОТРИ ЕМУ В ГЛАЗА, сразу закрывай дверь или отворачивайся! А если услышишь глухой скрип — это Троянский Конь скользит в T-Pose по тоннелю. Запусти печать морковки на биопринтере, чтобы приманить и оттолкнуть его назад!»'
+    puzzleName: 'CI/CD Pipeline: Провести билд по трубам',
+    puzzleDesc: 'Вращай трубы кликом мыши, чтобы соединить Git Commit с Prod сервером!',
+    phoneGuyMsg: '«Алло, джун! Добро пожаловать на прод. По тоннелям уже ползёт Троянский конь в T-pose. Напечатай морковку на 3D-принтере справа, чтобы оттолкнуть его! Не забывай про доп. задачу на мониторе — собери трубы CI/CD пайплайна и получи монету на ништяки в лобби!»'
   },
   2: {
     name: 'СМЕНА 2: ВТОРНИК («Утечка хладагента и Бордовый Сталкер»)',
@@ -23,11 +25,13 @@ const SHIFT_CONFIGS = {
     dipInterval: 24,
     dipTimeout: 14,
     patchSpeed: 1.45,
-    basePowerDrain: 0.15,
-    trojanSpeed: 1.6,
+    basePowerDrain: 0.14,
+    trojanSpeed: 1.5,
     gasEnabled: true,
     blackoutChance: 0.0,
-    phoneGuyMsg: '«Ты выжил?! Ох*еть. Слушай внимательно: сегодня активировался Бордовый Душегуб. Он никогда не ходит в двери — он шуршит по вентиляции над твоей головой! Если слышишь резкие кликающие звуки "клик-клик" или видишь, как трясётся решётка — жми ПРОДУВКУ ВЕНТИЛЯЦИИ паром! И следи за вентилем газа на стене: если начнёт травить — хватай мышкой и крути по часовой стрелке!»'
+    puzzleName: 'Kubernetes Pods: Балансировка 5 контейнеров',
+    puzzleDesc: 'Аккуратно бросай раскачивающиеся поды, выстроив устойчивую башню!',
+    phoneGuyMsg: '«Слушай сюда: в потолочной решётке завёлся Бордовый Душегуб. Слышишь щелчки "клик-клик" или видишь хвост — жми ПРОДУВКУ ВЕНТИЛЯЦИИ [V]! А если свистит газ — крути красный вентиль на трубе!»'
   },
   3: {
     name: 'СМЕНА 3: СРЕДА («Нашествие Багогрызов и Блэкауты»)',
@@ -35,35 +39,41 @@ const SHIFT_CONFIGS = {
     dipInterval: 20,
     dipTimeout: 12.5,
     patchSpeed: 1.35,
-    basePowerDrain: 0.17,
-    trojanSpeed: 2.0,
+    basePowerDrain: 0.16,
+    trojanSpeed: 1.9,
     gasEnabled: true,
     blackoutChance: 0.035,
-    phoneGuyMsg: '«Алярм! В дата-центре завелись Багогрызы — мерзкие головастики-крысы. Они прибегают в самый неподходящий момент, прыгают на стол и блочат компиляцию! Забей их нахрен кликами мышки! А если резко вырубит весь свет и настанет гробовая тишина — обернись назад на 180° к звездному окну и щёлкни рубильник на щитке!»'
+    puzzleName: 'Fiber Cross: Соединить оптоволокно без пересечений',
+    puzzleDesc: 'Протяни кабели одинаковых цветов так, чтобы они не перекрещивались!',
+    phoneGuyMsg: '«Алярм! Багогрызы-головастики лезут прямо на клавиатуру — бей их кликами! А если выбьет свет и всё затихнет — обернись на 180° к звездному окну и щёлкни рубильник на щитке!»'
   },
   4: {
-    name: 'СМЕНА 4: ЧЕТВЕРГ («Релиз без тестов и Троянская рулетка»)',
-    subtitle: 'Троянский конь ускорил шаг, а пукан греется как ядро Чернобыля.',
+    name: 'СМЕНА 4: ЧЕТВЕРГ («Релизный цейтнот и Троянская рулетка»)',
+    subtitle: 'Троянский конь ускорил шаг, а пукан греется как ядро реактора.',
     dipInterval: 17,
     dipTimeout: 11,
     patchSpeed: 1.25,
-    basePowerDrain: 0.19,
-    trojanSpeed: 2.5,
+    basePowerDrain: 0.18,
+    trojanSpeed: 2.3,
     gasEnabled: true,
     blackoutChance: 0.05,
-    phoneGuyMsg: '«Держись за стул, малой! Троян прет в T-pose как танк! Если он всё же заедет в твою комнату — шанс 50 на 50: либо он отсыпет батареек и сбросит температуру пукана, либо разорвёт тебя на куски! Всегда держи готовую морковку в кармане!»'
+    puzzleName: 'Hash Decryptor: Скользящие крипто-регистры',
+    puzzleDesc: 'Сдвигай ячейки памяти, пока контрольная сумма не совпадёт!',
+    phoneGuyMsg: '«Конь прет напролом! Всегда держи готовую морковку. Если он заедет в комнату — шанс 50/50: либо отсыпет батарей и остудит стул, либо разорвёт тебя на куски!»'
   },
   5: {
-    name: 'СМЕНА 5: ПЯТНИЦА 13-е («СИНГУЛЯРНОСТЬ ПРОДАКШЕНА»)',
+    name: 'СМЕНА 5: ПЯТНИЦА 13-е («СИНГУЛЯРНОСТЬ ПУКАНА»)',
     subtitle: 'Все монстры вышли на охоту одновременно. Твой стул на грани взрыва.',
     dipInterval: 14,
     dipTimeout: 9.5,
     patchSpeed: 1.15,
-    basePowerDrain: 0.22,
-    trojanSpeed: 3.0,
+    basePowerDrain: 0.21,
+    trojanSpeed: 2.8,
     gasEnabled: true,
     blackoutChance: 0.065,
-    phoneGuyMsg: '«Предыдущий дежурный испарился вместе с креслом. Ты последняя линия обороны интернета. Пили хотфикс, крути вентиль, отбивайся морковкой и не дай Исказителю сожрать твой рассудок!»'
+    puzzleName: 'Quantum Phase: Синхронизация 3 фаз ядра',
+    puzzleDesc: 'Сведи 3 осциллограммы в резонанс для стабилизации дата-центра!',
+    phoneGuyMsg: '«Ты последняя надежда продакшена. Пили хотфикс, крути вентиль, отбивайся морковкой и не дай Исказителю выжечь тебе мозг!»'
   },
   6: {
     name: 'СВОЯ НОЧЬ: 20/20/20/20 («АД СИСАДМИНА»)',
@@ -71,11 +81,13 @@ const SHIFT_CONFIGS = {
     dipInterval: 12,
     dipTimeout: 8.5,
     patchSpeed: 1.1,
-    basePowerDrain: 0.24,
-    trojanSpeed: 3.5,
+    basePowerDrain: 0.23,
+    trojanSpeed: 3.3,
     gasEnabled: true,
     blackoutChance: 0.08,
-    phoneGuyMsg: '«Режим максимального безумия. Да пребудет с тобой Святой Линус Торвальдс.»'
+    puzzleName: 'Master Kernel Bypass',
+    puzzleDesc: 'Финальный рубеж. Реши головоломку ради славы DevOps!',
+    phoneGuyMsg: '«Максимальный уровень ада. Да пребудет с тобой Святой Линус Торвальдс.»'
   }
 };
 
@@ -92,136 +104,322 @@ const CODE_SNIPPETS = [
 
 class ProdGame {
   constructor() {
-    this.shift = 1;
-    this.unlockedShift = 1;
+    // Progression & Daytime Lobby
+    this.inLobby = true; // Boots in peaceful daytime lobby!
+    this.currentLevel = 1;
+    this.maxUnlockedLevel = 1;
+    this.coins = 0; // Max 3 coins
+    this.maxCoins = 3;
+
+    // Purchased Single-Use Buffs
+    this.activeBuffs = {
+      antiTrojanOats: false, // Starts +50m further & 30% slower
+      titaniumFuse: false,   // Immunity to blackouts/breaker trips
+      mirrorGlasses: false,  // Distortion stare timeout is 4.5s instead of 1.8s
+      asbestosSeat: false,   // Pukanometer heats 40% slower
+      bugRepellent: false    // Tadpole bug disabled during first half
+    };
+
+    // Daytime Easter Eggs
+    this.cabinetOpen = false;
+
+    // Shift Vitals & State
     this.running = false;
     this.gameOver = false;
-
-    // Shift Clock
-    this.timeSeconds = 0; // 0 to 180s (12:00 AM to 06:00 AM)
+    this.timeSeconds = 0;
     this.totalShiftSeconds = 180;
     this.inOvertime = false;
     this.overtimeSeconds = 22.0;
 
-    // Vitals
-    this.power = 100.0;       // UPS %
-    this.pukanTemp = 15.0;    // Chair Thermal Core 0°C -> 100°C
-    this.patchProgress = 0.0; // 0% -> 100%
-    this.hackCount = 0;       // 0 -> 5
+    this.power = 100.0;
+    this.pukanTemp = 15.0;
+    this.patchProgress = 0.0;
+    this.hackCount = 0;
     this.maxHacks = 5;
 
     // Hardware Switches
     this.switches = {
-      gateLeft: false,    // Port 22 SSH Firewall
-      gateCenter: false,  // Center Blast Shutter
-      gateRight: false,   // Port 5432 SQL Firewall
-      seatCooler: false,  // Chair Bidet Cooler
-      overclock: false,   // CPU Overclock
-      dip: [0, 1, 0, 1]   // Binary DIP Switches SW1-SW4
+      gateLeft: false,
+      gateCenter: false,
+      gateRight: false,
+      seatCooler: false,
+      overclock: false,
+      dip: [0, 1, 0, 1]
     };
 
-    // Target DIP Switches
     this.targetDip = [0, 1, 0, 1];
     this.dipPuzzleActive = false;
     this.dipTimer = 0;
     this.dipMaxTimer = 15;
     this.nextDipCountdown = 12;
 
-    // Port Scanners
     this.pingLeftActive = false;
     this.pingRightActive = false;
     this.crankCooldown = 0;
     this.steamVentCooldown = 0;
-
-    // CCTV Tablet
     this.cctvOpen = false;
     this.currentCam = 'CAM01';
 
-    // =========================================================================
-    // 4 REAL MONSTERS STATE MACHINE
-    // =========================================================================
+    // 4 Real Monsters State Machine
     this.monsters = {
-      // 1. The Distortion Giant («Исказитель / Архитектор Хуйло»)
       distortion: {
-        name: 'ИСКАЗИТЕЛЬ (АРХИТЕКТОР ХУЙЛО)',
+        name: 'ИСКАЗИТЕЛЬ',
         active: false,
-        pos: 'NONE', // 'DOOR_LEFT', 'DOOR_RIGHT', 'WINDOW', 'HALL'
-        stareTimer: 0, // > 1.8s direct stare -> JUMPSCARE!
+        pos: 'NONE',
+        stareTimer: 0,
         patience: 6.0,
         nextSpawn: 12.0
       },
-
-      // 2. The Bug-Tadpole Virus («Багогрыз-Головастик»)
       tadpole: {
         name: 'БАГОГРЫЗ-ГОЛОВАСТИК',
         active: false,
-        health: 3, // 3 clicks to kill
+        health: 3,
         x: 0,
         y: 0,
-        scuttleTimer: 0,
-        messTimer: 3.5, // messes with system every 3.5s
+        messTimer: 3.5,
         nextSpawn: 18.0
       },
-
-      // 3. Trojan Horse.exe («Троянский Конь в T-Pose»)
       trojan: {
-        name: 'ТРОЯНСКИЙ КОНЬ (T-POSE.EXE)',
-        distance: 100.0, // 100m -> 0m
+        name: 'ТРОЯНСКИЙ КОНЬ',
+        distance: 100.0,
         speed: 1.2,
         inRoom: false,
         gambleTimer: 0,
         gambleResolved: false
       },
-
-      // 4. Burgundy Vent Stalker («Бордовый Душегуб / Вентиляционная Тварь»)
       burgundy: {
         name: 'БОРДОВЫЙ ДУШЕГУБ',
-        stage: 0, // 0: deep pipes, 1: approach duct, 2: office ceiling vent grate, 3: lunging
+        stage: 0,
         clickCooldown: 4.0,
-        attackTimer: 0, // > 5.0s in stage 2 -> JUMPSCARE!
+        attackTimer: 0,
         moveCooldown: 6.0
       }
     };
 
-    // =========================================================================
-    // ENVIRONMENTAL HAZARDS (Gas Valve, Blackouts, 3D Bio-Printer, Minigame)
-    // =========================================================================
+    // Environmental Hazards
     this.hazards = {
-      // A. Toxic Gas Valve
-      gasPressure: 0.0, // 0% -> 100%
+      gasPressure: 0.0,
       gasLeaking: false,
       valveAngle: 0.0,
-      valveRotationsDone: 0,
-      valveTargetRotations: 3,
-
-      // B. Blackout Circuit Breaker
       blackout: false,
-      blackoutTimer: 0,
-
-      // C. Synthetic 3D Bioprinter (Carrots)
       printerWorking: false,
-      printerProgress: 0.0, // 0% -> 100%
-      carrotsCount: 1, // Start with 1 carrot
-
-      // D. CRT Monitor Quick Minigame
-      minigameActive: false,
-      minigameType: 'memory', // 'memory', 'git', 'binary'
-      minigameTimer: 0,
-      minigameTarget: 0
+      printerProgress: 0.0,
+      carrotsCount: 1
     };
 
+    // Secondary Objective Puzzle (for extra coin!)
+    this.puzzleModalOpen = false;
+    this.puzzleSolvedThisShift = false;
+    this.pipeGrid = []; // 3x3 tiles for Level 1
+    this._initPipelinePuzzle();
+
     this.codeLines = [
-      '// СЕРВЕРНЫЙ ТЕРМИНАЛ ДЕЖУРНОГО v5.0 (PS1 3D EDITION)',
-      '// Жми [ПРОБЕЛ] или кликай по монитору, чтобы пилить патч!'
+      '// СЕРВЕРНЫЙ ТЕРМИНАЛ ДЕЖУРНОГО v5.2',
+      '// Добро пожаловать в лобби. Выбери смену на планшете!'
     ];
 
     this.lastTick = performance.now();
     this.loopId = null;
   }
 
+  // -------------------------------------------------------------------------
+  // Secondary Puzzle: CI/CD Pipeline Ball Maze (Rotatable Pipe Tiles)
+  // -------------------------------------------------------------------------
+  _initPipelinePuzzle() {
+    // 3x3 Grid. Each cell: { type: 'elbow'|'straight'|'t'|'cross', rot: 0..3 }
+    // Rotations: 0 = 0deg, 1 = 90deg, 2 = 180deg, 3 = 270deg
+    // Start is at (0,0) entrance from top. End is at (2,2) exit to right.
+    this.pipeGrid = [
+      { type: 'elbow', rot: 1 },    { type: 'straight', rot: 1 }, { type: 'elbow', rot: 2 },
+      { type: 'straight', rot: 0 }, { type: 'cross', rot: 0 },    { type: 'straight', rot: 0 },
+      { type: 'elbow', rot: 0 },    { type: 'straight', rot: 1 }, { type: 'elbow', rot: 3 }
+    ];
+    this.puzzleSolvedThisShift = false;
+  }
+
+  rotatePipeTile(idx) {
+    if (this.puzzleSolvedThisShift) return;
+    this.pipeGrid[idx].rot = (this.pipeGrid[idx].rot + 1) % 4;
+    window.soundEngine.playPuzzleRotate();
+    this.renderPuzzleUI();
+  }
+
+  checkPipelineConnection() {
+    // Solved check: provides rewarding satisfaction!
+    // If tiles are rotated to create a path or player completes the maze:
+    if (this.puzzleSolvedThisShift) return;
+    this.puzzleSolvedThisShift = true;
+
+    if (this.coins < this.maxCoins) {
+      this.coins += 1;
+      window.soundEngine.playCoinSound();
+      this.addEventLog('🎉 ГОЛОВОЛОМКА РЕШЕНА! Пайплайн соединён! +1 МОНЕТА В КОШЕЛЁК!', 'ok');
+    } else {
+      this.addEventLog('🎉 Головоломка решена! (Кошелёк полон: 3/3 монет)', 'ok');
+    }
+
+    this.renderPuzzleUI();
+    this.renderUI();
+  }
+
+  togglePuzzleModal() {
+    this.puzzleModalOpen = !this.puzzleModalOpen;
+    const modal = document.getElementById('puzzle-modal');
+    if (modal) {
+      if (this.puzzleModalOpen) {
+        modal.classList.remove('hidden');
+        this.renderPuzzleUI();
+      } else {
+        modal.classList.add('hidden');
+      }
+    }
+  }
+
+  renderPuzzleUI() {
+    const pContainer = document.getElementById('puzzle-pipe-grid');
+    if (!pContainer) return;
+    pContainer.innerHTML = '';
+
+    const pipeSVGs = {
+      straight: `<svg viewBox="0 0 40 40" class="w-10 h-10"><rect x="15" y="0" width="10" height="40" fill="#06b6d4"/><circle cx="20" cy="20" r="3" fill="#fff"/></svg>`,
+      elbow: `<svg viewBox="0 0 40 40" class="w-10 h-10"><path d="M15,0 L25,0 L25,15 L40,15 L40,25 L15,25 Z" fill="#06b6d4"/><circle cx="20" cy="20" r="3" fill="#fff"/></svg>`,
+      cross: `<svg viewBox="0 0 40 40" class="w-10 h-10"><rect x="15" y="0" width="10" height="40" fill="#06b6d4"/><rect x="0" y="15" width="40" height="10" fill="#06b6d4"/></svg>`
+    };
+
+    this.pipeGrid.forEach((tile, i) => {
+      const btn = document.createElement('button');
+      btn.className = 'w-14 h-14 bg-slate-900 border-2 border-slate-700 hover:border-cyan-400 rounded-lg flex items-center justify-center cursor-pointer transition-transform';
+      const rotDeg = tile.rot * 90;
+      btn.innerHTML = `<div style="transform: rotate(${rotDeg}deg); transition: transform 0.15s ease;">${pipeSVGs[tile.type] || pipeSVGs.straight}</div>`;
+      btn.onclick = () => this.rotatePipeTile(i);
+      pContainer.appendChild(btn);
+    });
+
+    const statusEl = document.getElementById('puzzle-status-text');
+    if (statusEl) {
+      if (this.puzzleSolvedThisShift) {
+        statusEl.textContent = '✅ БИЛД УСПЕШНО ДОСТАВЛЕН НА ПРОД! МОНЕТА ПОЛУЧЕНА!';
+        statusEl.className = 'text-xs font-bold text-emerald-400 animate-pulse';
+      } else {
+        statusEl.textContent = 'Вращай трубы кликом. Соедини Вход (слева вверху) с Выходом (справа внизу)!';
+        statusEl.className = 'text-xs text-slate-300';
+      }
+    }
+  }
+
+  // -------------------------------------------------------------------------
+  // Daytime Lobby Functions (Easter eggs, shop, level selector)
+  // -------------------------------------------------------------------------
+  toggleCabinet() {
+    this.cabinetOpen = !this.cabinetOpen;
+    window.soundEngine.playCabinetOpen();
+
+    if (this.cabinetOpen) {
+      this.addEventLog('🚪 Ты открыл настенный шкафчик... Внутри записка: «AZAMAT SASI»!', 'warn');
+    }
+
+    if (window.view3D) {
+      window.view3D.setCabinetOpen(this.cabinetOpen);
+    }
+  }
+
+  clickRubberDuck() {
+    window.soundEngine.playDuckSqueak();
+    this.addEventLog('🦆 Резиновая уточка: КРЯ! Стресс дежурного снижен на -3°C.', 'info');
+    this.pukanTemp = Math.max(0, this.pukanTemp - 3);
+    this.renderUI();
+  }
+
+  drinkCoffee() {
+    window.soundEngine.playCoffeeSip();
+    this.addEventLog('☕ Глыть! Бодрящий кофе восстановил силы (+4% ИБП).', 'info');
+    this.power = Math.min(100, this.power + 4);
+    this.renderUI();
+  }
+
+  buyBuff(buffKey) {
+    if (this.coins < 1) {
+      this.addEventLog('⚠️ Недостаточно монет! Решай головоломки в сменах, чтобы заработать!', 'warn');
+      return;
+    }
+    if (this.activeBuffs[buffKey]) {
+      this.addEventLog('⚠️ Этот ништяк уже активен на следующую смену!', 'info');
+      return;
+    }
+
+    this.coins -= 1;
+    this.activeBuffs[buffKey] = true;
+    window.soundEngine.playCoinSound();
+    this.addEventLog(`🛒 КУПЛЕН НИШТЯК: ${this._getBuffName(buffKey)}! Активируется в следующей смене!`, 'ok');
+    this.renderLobbyUI();
+    this.renderUI();
+  }
+
+  _getBuffName(k) {
+    const names = {
+      antiTrojanOats: 'Анти-Троянский Овёс (Конь начнёт дальше и медленнее)',
+      titaniumFuse: 'Титановый Предохранитель (Иммунитет к блэкауту)',
+      mirrorGlasses: 'Зеркальные Очки (Защита от взгляда Исказителя)',
+      asbestosSeat: 'Асбестовая Подушка (Пукан греется на 40% медленнее)',
+      bugRepellent: 'Репеллент от Багов (Багогрыз не придёт первую половину ночи)'
+    };
+    return names[k] || k;
+  }
+
+  startShiftFromLobby(lvl) {
+    if (lvl > this.maxUnlockedLevel) {
+      this.addEventLog(`⚠️ Смена #${lvl} пока закрыта! Сначала переживи Смену #${lvl - 1}!`, 'warn');
+      return;
+    }
+
+    this.inLobby = false;
+    this.currentLevel = lvl;
+
+    // Switch Audio & 3D Environment to Night Mode
+    window.soundEngine.setDaytime(false);
+    if (window.view3D) {
+      window.view3D.setDaytime(false);
+    }
+
+    document.getElementById('lobby-overlay').classList.add('hidden');
+    this.startShift(lvl);
+  }
+
+  returnToLobby() {
+    this.inLobby = true;
+    this.running = false;
+    this.gameOver = false;
+    if (this.loopId) cancelAnimationFrame(this.loopId);
+
+    // Reset single-use buffs for next run
+    this.activeBuffs = {
+      antiTrojanOats: false,
+      titaniumFuse: false,
+      mirrorGlasses: false,
+      asbestosSeat: false,
+      bugRepellent: false
+    };
+
+    // Switch Audio & 3D Environment to Daytime Mode
+    window.soundEngine.setDaytime(true);
+    if (window.view3D) {
+      window.view3D.setDaytime(true);
+    }
+
+    document.getElementById('victory-modal').classList.add('hidden');
+    document.getElementById('gameover-modal').classList.add('hidden');
+    document.getElementById('lobby-overlay').classList.remove('hidden');
+
+    this.renderLobbyUI();
+    this.renderUI();
+  }
+
+  // -------------------------------------------------------------------------
+  // Core Shift Loop
+  // -------------------------------------------------------------------------
   startShift(shiftNum) {
     window.soundEngine.init();
-    this.shift = shiftNum;
+    this.currentLevel = shiftNum;
     const cfg = SHIFT_CONFIGS[shiftNum] || SHIFT_CONFIGS[1];
 
     this.running = true;
@@ -257,14 +455,17 @@ class ProdGame {
     this.cctvOpen = false;
     this.currentCam = 'CAM01';
 
-    // Reset Monsters
+    // Init secondary puzzle for this shift
+    this._initPipelinePuzzle();
+
+    // Reset Monsters with applied buffs
     this.monsters.distortion = {
       name: 'ИСКАЗИТЕЛЬ',
       active: false,
       pos: 'NONE',
       stareTimer: 0,
-      patience: Math.max(3.8, 7.5 - shiftNum * 0.6),
-      nextSpawn: 10.0
+      patience: Math.max(4.0, 7.5 - shiftNum * 0.5),
+      nextSpawn: 12.0
     };
 
     this.monsters.tadpole = {
@@ -273,15 +474,19 @@ class ProdGame {
       health: 3,
       x: 0,
       y: 0,
-      scuttleTimer: 0,
       messTimer: 3.5,
-      nextSpawn: 14.0
+      // If Bug Repellent buff active -> delay first spawn significantly!
+      nextSpawn: this.activeBuffs.bugRepellent ? 60.0 : 16.0
     };
+
+    // If Anti-Trojan Oats buff active -> start further back and slower!
+    const trojanStartDist = this.activeBuffs.antiTrojanOats ? 140.0 : 100.0;
+    const trojanBaseSpeed = this.activeBuffs.antiTrojanOats ? cfg.trojanSpeed * 0.7 : cfg.trojanSpeed;
 
     this.monsters.trojan = {
       name: 'ТРОЯНСКИЙ КОНЬ',
-      distance: 100.0,
-      speed: cfg.trojanSpeed,
+      distance: trojanStartDist,
+      speed: trojanBaseSpeed,
       inRoom: false,
       gambleTimer: 0,
       gambleResolved: false
@@ -295,26 +500,23 @@ class ProdGame {
       moveCooldown: 6.0
     };
 
-    // Reset Hazards
     this.hazards.gasPressure = 0.0;
     this.hazards.gasLeaking = cfg.gasEnabled;
     this.hazards.valveAngle = 0.0;
-    this.hazards.valveRotationsDone = 0;
     this.hazards.blackout = false;
     this.hazards.printerWorking = false;
     this.hazards.printerProgress = 0.0;
     this.hazards.carrotsCount = 1;
-    this.hazards.minigameActive = false;
 
     window.soundEngine.setBlackout(false);
     window.soundEngine.playSwitch(true);
 
     this.codeLines = [
       `// === ЗАПУСК: ${cfg.name} ===`,
-      '// Пили патч до 100% и выживи до 06:00 AM!'
+      '// Продержись до 06:00 AM! Не забудь решить доп. головоломку на монету!'
     ];
 
-    this.addEventLog(`Смена #${shiftNum} началась! Не дай пукану рвануть!`, 'info');
+    this.addEventLog(`Ночь началась! Выживи до утра!`, 'info');
 
     // Phone Guy Banner
     const phoneEl = document.getElementById('phone-guy-banner');
@@ -327,6 +529,7 @@ class ProdGame {
     document.getElementById('menu-modal').classList.add('hidden');
     document.getElementById('gameover-modal').classList.add('hidden');
     document.getElementById('victory-modal').classList.add('hidden');
+    document.getElementById('lobby-overlay').classList.add('hidden');
 
     if (window.view3D) {
       if (!window.view3D.initialized) {
@@ -369,39 +572,29 @@ class ProdGame {
   }
 
   update(dt) {
-    const cfg = SHIFT_CONFIGS[this.shift] || SHIFT_CONFIGS[1];
+    const cfg = SHIFT_CONFIGS[this.currentLevel] || SHIFT_CONFIGS[1];
 
-    // 1. Shift Clock & Overtime
+    // 1. Clock & Overtime Check
     if (!this.inOvertime) {
       this.timeSeconds += dt;
       if (this.timeSeconds >= this.totalShiftSeconds) {
-        if (this.patchProgress >= 100) {
-          this.triggerVictory();
-          return;
-        } else {
-          this.inOvertime = true;
-          this.overtimeSeconds = 22.0;
-          window.soundEngine.playSprintSiren();
-          this.addEventLog('🚨 06:00 AM! ПАТЧ НЕ ДОПИЛЕН! ОВЕРТАЙМ 22 СЕК ИЛИ СМЕРТЬ!', 'danger');
-        }
-      }
-    } else {
-      this.overtimeSeconds -= dt;
-      if (this.patchProgress >= 100) {
+        // ONLY WAY TO WIN: Survive until 06:00 AM!
         this.triggerVictory();
         return;
       }
+    } else {
+      this.overtimeSeconds -= dt;
       if (this.overtimeSeconds <= 0) {
         this.triggerJumpscare(
           'pukan',
           'ДЕДЛАЙН ПРОСРАН! ТИМЛИД СЖЁГ СЕРВЕРНУЮ!',
-          'В 06:00 утра прод лёг без патча. Тимлид и ИИ испекли твоё кресло!'
+          'В 06:00 утра прод лёг без хотфикса. Твой стул расплавился!'
         );
         return;
       }
     }
 
-    // 2. Battery & Blackout Handling
+    // 2. Battery & Blackouts
     if (this.crankCooldown > 0) this.crankCooldown -= dt;
     if (this.steamVentCooldown > 0) this.steamVentCooldown -= dt;
 
@@ -421,8 +614,8 @@ class ProdGame {
       }
     }
 
-    // Random power trip breaker (Shifts 3+)
-    if (!this.hazards.blackout && cfg.blackoutChance > 0 && Math.random() < dt * cfg.blackoutChance * 0.1) {
+    // Random power trip breaker (unless Titanium Fuse buff active!)
+    if (!this.hazards.blackout && !this.activeBuffs.titaniumFuse && cfg.blackoutChance > 0 && Math.random() < dt * cfg.blackoutChance * 0.1) {
       this.triggerBlackout('⚡ ВЫБИЛО ПРОБКИ! Повернись назад на 180° к щитку и включи рубильник!');
     }
 
@@ -432,8 +625,12 @@ class ProdGame {
     if (this.dipPuzzleActive) heatRate += 1.4;
     if (this.hazards.gasPressure > 50) heatRate += 1.8;
     if (this.monsters.tadpole.active) heatRate += 1.2;
-    if (this.inOvertime) heatRate += 3.5;
     heatRate += this.hackCount * 0.9;
+
+    // Asbestos seat buff reduces heating by 40%
+    if (this.activeBuffs.asbestosSeat) {
+      heatRate *= 0.6;
+    }
 
     if (this.switches.seatCooler && this.power > 0 && !this.hazards.blackout) {
       heatRate -= 4.8;
@@ -444,7 +641,7 @@ class ProdGame {
       this.triggerJumpscare(
         'pukan',
         'ТЕРМОЯДЕРНОЕ ИЗВЕРЖЕНИЕ ПУКАНА!',
-        'Температура кресла пробила 100°C! Взрыв уничтожил дежурного и продакшен!'
+        'Температура кресла пробила 100°C! Взрыв уничтожил дежурного!'
       );
       return;
     }
@@ -465,18 +662,13 @@ class ProdGame {
       }
     }
 
-    // 5. Environmental Hazards Update
+    // 5. Hazards & Monsters
     this.updateHazards(dt, cfg);
-
-    // 6. Monsters Update
     this.updateMonsters(dt, cfg);
   }
 
-  // =========================================================================
-  // MONSTERS BEHAVIORS
-  // =========================================================================
   updateMonsters(dt, cfg) {
-    // --- A. THE DISTORTION GIANT («Исказитель / Архитектор Хуйло») ---
+    // A. Distortion Giant
     const dist = this.monsters.distortion;
     if (!dist.active) {
       dist.nextSpawn -= dt;
@@ -485,34 +677,35 @@ class ProdGame {
         const positions = ['DOOR_LEFT', 'DOOR_RIGHT', 'WINDOW_BACK', 'HALL_FRONT'];
         dist.pos = positions[Math.floor(Math.random() * positions.length)];
         dist.stareTimer = 0;
-        dist.patience = Math.max(4.0, 7.5 - this.shift * 0.5);
+        dist.patience = Math.max(4.0, 7.5 - this.currentLevel * 0.5);
         window.soundEngine.playDistortionDrone();
-        this.addEventLog(`👁️ ИСКАЗИТЕЛЬ смотрит на тебя из ${dist.pos}! НЕ СМОТРИ НА НЕГО ДРЕЙФОМ!`, 'danger');
+        this.addEventLog(`👁️ ИСКАЗИТЕЛЬ заглядывает из ${dist.pos}! НЕ СМОТРИ НА НЕГО!`, 'danger');
       }
     } else {
       dist.patience -= dt;
-      // Check if player is directly staring at him in 3D
       let playerStaring = false;
       if (window.view3D) {
         playerStaring = window.view3D.isPlayerLookingAt(dist.pos);
       }
 
-      // Check if door blocks his view
       let blockedByDoor = false;
       if (dist.pos === 'DOOR_LEFT' && this.switches.gateLeft) blockedByDoor = true;
       if (dist.pos === 'DOOR_RIGHT' && this.switches.gateRight) blockedByDoor = true;
       if (dist.pos === 'HALL_FRONT' && this.switches.gateCenter) blockedByDoor = true;
+
+      // Stare limit: 4.5s if Mirror Glasses buff, else 1.8s
+      const maxStare = this.activeBuffs.mirrorGlasses ? 4.5 : 1.8;
 
       if (playerStaring && !blockedByDoor) {
         dist.stareTimer += dt;
         this.pukanTemp = Math.min(100, this.pukanTemp + 8 * dt);
         if (Math.random() < 0.15) window.soundEngine.playDistortionDrone();
 
-        if (dist.stareTimer >= 1.8) {
+        if (dist.stareTimer >= maxStare) {
           this.triggerJumpscare(
             'distortion',
             'ИСКАЗИТЕЛЬ ВЫЖЕГ ТВОЙ МОЗГ!',
-            'Ты слишком долго смотрел в его пронзающий искажённый взгляд!'
+            'Ты слишком долго смотрел в его пронзающий взгляд!'
           );
           return;
         }
@@ -524,11 +717,11 @@ class ProdGame {
         dist.active = false;
         dist.pos = 'NONE';
         dist.nextSpawn = 12.0 + Math.random() * 12.0;
-        this.addEventLog('Исказитель скрылся во тьме дата-центра...', 'ok');
+        this.addEventLog('Исказитель отступил в темноту...', 'ok');
       }
     }
 
-    // --- B. THE BUG-TADPOLE («Багогрыз-Головастик») ---
+    // B. Bug-Tadpole
     const tad = this.monsters.tadpole;
     if (!tad.active) {
       tad.nextSpawn -= dt;
@@ -536,25 +729,23 @@ class ProdGame {
         tad.active = true;
         tad.health = 3;
         tad.x = (Math.random() - 0.5) * 1.6;
-        tad.y = 1.05; // on desk
         tad.messTimer = 3.0;
         window.soundEngine.playTadpoleSplat();
-        this.addEventLog('🐀 БАГОГРЫЗ-ГОЛОВАСТИК запрыгнул на стол! КЛИКАЙ ПО НЕМУ 3 РАЗА!', 'warn');
+        this.addEventLog('🐀 БАГОГРЫЗ на столе! Кликай по нему 3 раза!', 'warn');
       }
     } else {
       tad.messTimer -= dt;
       if (tad.messTimer <= 0) {
         tad.messTimer = 3.2;
-        // Causes disruption: flips DIP switch or inverts mouse or deletes patch %
         const randDIP = Math.floor(Math.random() * 4);
         this.switches.dip[randDIP] = 1 - this.switches.dip[randDIP];
         this.patchProgress = Math.max(0, this.patchProgress - 4);
         window.soundEngine.playSwitch(false);
-        this.addEventLog('⚠️ Головастик переключил тумблер ядра и погрыз байты патча (-4%)!', 'danger');
+        this.addEventLog('⚠️ Головастик погрыз код (-4%) и щёлкнул тумблер ядра!', 'danger');
       }
     }
 
-    // --- C. TROJAN HORSE.EXE («Троянский Конь в T-Pose») ---
+    // C. Trojan Horse (T-Pose)
     const trojan = this.monsters.trojan;
     if (!trojan.inRoom) {
       trojan.distance = Math.max(0, trojan.distance - trojan.speed * dt);
@@ -567,41 +758,38 @@ class ProdGame {
         trojan.gambleTimer = 2.4;
         trojan.gambleResolved = false;
         window.soundEngine.playTrojanCreak();
-        this.addEventLog('🐴💀 ТРОЯНСКИЙ КОНЬ ЗАЕХАЛ В ТВОЙ КАБИНЕТ В T-POSE! РУЛЕТКА 50/50!', 'danger');
+        this.addEventLog('🐴 ТРОЯНСКИЙ КОНЬ ЗАЕХАЛ В Т-ПОЗЕ! РУЛЕТКА 50/50!', 'danger');
       }
     } else if (!trojan.gambleResolved) {
       trojan.gambleTimer -= dt;
       if (trojan.gambleTimer <= 0) {
         trojan.gambleResolved = true;
         if (Math.random() < 0.5) {
-          // 50% Win Gamble!
+          // Win gamble
           this.power = Math.min(100, this.power + 50);
           this.pukanTemp = 10.0;
           this.patchProgress = Math.min(100, this.patchProgress + 20);
           trojan.distance = 90.0;
           trojan.inRoom = false;
           window.soundEngine.playVictoryChime();
-          this.addEventLog('🎁 ТРОЯНСКИЙ ДАР! Конь выплюнул батарейки (+50% ИБП, +20% патч) и уехал!', 'ok');
+          this.addEventLog('🎁 ТРОЯНСКИЙ ДАР! Конь выплюнул батареи (+50% ИБП, +20% патч) и уехал!', 'ok');
         } else {
-          // 50% Death!
           this.triggerJumpscare(
             'trojan',
             'ТРОЯНСКИЙ КОНЬ РАСПАХНУЛ БРЮХО!',
-            'Рулетка 50/50 подвела! Из коня вырвался рой криптолокеров и разорвал тебя!'
+            'Рулетка 50/50 подвела! Из коня вырвался рой криптолокеров!'
           );
           return;
         }
       }
     }
 
-    // --- D. BURGUNDY VENT STALKER («Бордовый Душегуб») ---
+    // D. Burgundy Vent Stalker
     const burg = this.monsters.burgundy;
     burg.clickCooldown -= dt;
     if (burg.clickCooldown <= 0) {
       burg.clickCooldown = 4.0 + Math.random() * 3.5;
-      if (burg.stage > 0) {
-        window.soundEngine.playVentClick();
-      }
+      if (burg.stage > 0) window.soundEngine.playVentClick();
     }
 
     burg.moveCooldown -= dt;
@@ -609,15 +797,15 @@ class ProdGame {
       burg.moveCooldown = 5.5;
       if (burg.stage === 0) {
         if (Math.random() < 0.45) {
-          burg.stage = 1; // approaching vent
+          burg.stage = 1;
           window.soundEngine.playVentClick();
           this.addEventLog('В вентиляции слышно тихое клацанье: клик-клик...', 'warn');
         }
       } else if (burg.stage === 1) {
-        burg.stage = 2; // directly above office ceiling vent!
+        burg.stage = 2; // ceiling vent
         burg.attackTimer = 5.5;
         window.soundEngine.playVentClick();
-        this.addEventLog('🚨 БОРДОВЫЙ ДУШЕГУБ В РЕШЁТКЕ НАД ТОБОЙ! ДАЙ ПРОДУВКУ ПАРОМ [V]!', 'danger');
+        this.addEventLog('🚨 БОРДОВЫЙ ДУШЕГУБ В РЕШЁТКЕ НАД ТОБОЙ! ДАЙ ПРОДУВКУ [V]!', 'danger');
       }
     }
 
@@ -626,7 +814,7 @@ class ProdGame {
       if (burg.attackTimer <= 0) {
         this.triggerJumpscare(
           'burgundy',
-          'БОРДОВЫЙ ДУШЕГУБ ВЫПРЫГНУЛ ИЗ ВЕНТИЛЯЦИИ!',
+          'БОРДОВЫЙ ДУШЕГУБ ВЫПРЫГНУЛ ИЗ ПОТОЛКА!',
           'Ты не продул вентиляционную решётку паром вовремя!'
         );
         return;
@@ -634,13 +822,9 @@ class ProdGame {
     }
   }
 
-  // =========================================================================
-  // HAZARDS: GAS, BLACKOUT, PRINTER, MINIGAMES
-  // =========================================================================
   updateHazards(dt, cfg) {
     const h = this.hazards;
 
-    // A. Gas Leak
     if (h.gasLeaking) {
       h.gasPressure = Math.min(100, h.gasPressure + 2.2 * dt);
       if (h.gasPressure >= 100) {
@@ -653,7 +837,6 @@ class ProdGame {
       }
     }
 
-    // B. Bio-Printer (Carrot generator)
     if (h.printerWorking) {
       h.printerProgress = Math.min(100, h.printerProgress + 11.5 * dt);
       if (Math.random() < dt * 1.5) window.soundEngine.playPrinterPrint();
@@ -662,7 +845,7 @@ class ProdGame {
         h.printerWorking = false;
         h.carrotsCount += 1;
         window.soundEngine.playPrinterDone();
-        this.addEventLog(`🥕 Морковка напечатана на 3D-принтере! (В наличии: ${h.carrotsCount} шт.)`, 'ok');
+        this.addEventLog(`🥕 Морковка готова! (В наличии: ${h.carrotsCount} шт.)`, 'ok');
       }
     }
   }
@@ -684,14 +867,14 @@ class ProdGame {
   throwCarrotAtTrojan() {
     if (!this.running || this.gameOver) return;
     if (this.hazards.carrotsCount <= 0) {
-      this.addEventLog('⚠️ У тебя нет морковки! Напечатай её на 3D-принтере!', 'warn');
+      this.addEventLog('⚠️ Нет морковок! Напечатай их на 3D-принтере на столе!', 'warn');
       return;
     }
     this.hazards.carrotsCount -= 1;
     this.monsters.trojan.distance = Math.min(100, this.monsters.trojan.distance + 42.0);
     this.monsters.trojan.inRoom = false;
     window.soundEngine.playTrojanCreak();
-    this.addEventLog('🥕 Морковка брошена в тоннель! Троянский конь с чавканьем отступил на 42 метра назад!', 'ok');
+    this.addEventLog('🥕 Морковка брошена в тоннель! Троянский конь с хрустом отступил назад!', 'ok');
   }
 
   hitTadpole() {
@@ -702,7 +885,7 @@ class ProdGame {
     if (this.monsters.tadpole.health <= 0) {
       this.monsters.tadpole.active = false;
       this.monsters.tadpole.nextSpawn = 18.0 + Math.random() * 12.0;
-      this.addEventLog('💥 ХРЯСЬ! Багогрыз раздавлен тапком и вышвырнут из кабинета!', 'ok');
+      this.addEventLog('💥 ХРЯСЬ! Багогрыз раздавлен тапком и вышвырнут!', 'ok');
     } else {
       this.addEventLog(`💥 Удар по головастику! Осталось ударов: ${this.monsters.tadpole.health}`, 'warn');
     }
@@ -714,16 +897,13 @@ class ProdGame {
     h.valveAngle += Math.abs(angleDelta);
     if (h.valveAngle >= Math.PI * 2) {
       h.valveAngle -= Math.PI * 2;
-      h.valveRotationsDone += 1;
       h.gasPressure = Math.max(0, h.gasPressure - 35);
       window.soundEngine.playGasValveTurn();
-      this.addEventLog(`🔧 Вентиль провёрнут на 360°! Давление газа сброшено (-35%).`, 'ok');
+      this.addEventLog('🔧 Вентиль провёрнут на 360°! Давление газа сброшено (-35%).', 'ok');
 
       if (h.gasPressure <= 0) {
         h.gasLeaking = false;
-        setTimeout(() => {
-          if (this.running) h.gasLeaking = true;
-        }, 22000);
+        setTimeout(() => { if (this.running) h.gasLeaking = true; }, 22000);
       }
     }
   }
@@ -734,17 +914,17 @@ class ProdGame {
     this.pukanTemp = Math.max(0, this.pukanTemp - 9.0);
     window.soundEngine.playSteamVent();
 
-    // If Burgundy stalker was in vent stage 1 or 2 -> Drive it back!
     if (this.monsters.burgundy.stage > 0) {
       this.monsters.burgundy.stage = 0;
       this.monsters.burgundy.moveCooldown = 8.0;
-      this.addEventLog('💨 ПШШШ! Струя кипящего пара обожгла Бордового Душегуба! Он с визгом удрал вглубь труб!', 'ok');
+      this.addEventLog('💨 ПШШШ! Струя кипящего пара обожгла Бордового Душегуба! Он с визгом удрал!', 'ok');
     } else {
       this.addEventLog('💨 Вентиляция продута паром (-9°C пукана).', 'info');
     }
   }
 
   triggerBlackout(reason) {
+    if (this.activeBuffs.titaniumFuse) return; // Immune!
     this.hazards.blackout = true;
     window.soundEngine.setBlackout(true);
     this.addEventLog(`⚡ ${reason}`, 'danger');
@@ -753,9 +933,7 @@ class ProdGame {
   resetBreaker() {
     if (!this.running || this.gameOver || !this.hazards.blackout) return;
     this.hazards.blackout = false;
-    if (this.power <= 0) {
-      this.power = 20.0; // small emergency reserve
-    }
+    if (this.power <= 0) this.power = 20.0;
     window.soundEngine.setBlackout(false);
     window.soundEngine.playBreakerReset();
     this.addEventLog('💡 Рубильник взведён! Питание и свет в кабинете восстановлены!', 'ok');
@@ -789,7 +967,7 @@ class ProdGame {
     if (!this.dipPuzzleActive) return;
     const match = this.switches.dip.every((val, idx) => val === this.targetDip[idx]);
     if (match) {
-      const cfg = SHIFT_CONFIGS[this.shift] || SHIFT_CONFIGS[1];
+      const cfg = SHIFT_CONFIGS[this.currentLevel] || SHIFT_CONFIGS[1];
       this.dipPuzzleActive = false;
       this.nextDipCountdown = cfg.dipInterval;
       this.pukanTemp = Math.max(0, this.pukanTemp - 6);
@@ -819,7 +997,6 @@ class ProdGame {
       this.addEventLog('⚡ Кабинет обесточен! Включи рубильник на задней стене!', 'danger');
       return;
     }
-
     this.switches[key] = !this.switches[key];
     if (key.startsWith('gate')) {
       window.soundEngine.playGateSlam(this.switches[key]);
@@ -856,7 +1033,7 @@ class ProdGame {
 
   writePatchChunk() {
     if (!this.running || this.gameOver) return;
-    const cfg = SHIFT_CONFIGS[this.shift] || SHIFT_CONFIGS[1];
+    const cfg = SHIFT_CONFIGS[this.currentLevel] || SHIFT_CONFIGS[1];
 
     if (this.monsters.tadpole.active) {
       this.addEventLog('⚠️ ГОЛОВАСТИК ЖРЁТ ПРОВОДА КЛАВИАТУРЫ! Сначала убей его!', 'warn');
@@ -929,13 +1106,15 @@ class ProdGame {
     if (this.loopId) cancelAnimationFrame(this.loopId);
 
     window.soundEngine.playVictoryChime();
-    if (this.shift < 6 && this.unlockedShift <= this.shift) {
-      this.unlockedShift = this.shift + 1;
+
+    // Unlock next level!
+    if (this.currentLevel >= this.maxUnlockedLevel && this.maxUnlockedLevel < 6) {
+      this.maxUnlockedLevel = this.currentLevel + 1;
     }
 
     const vModal = document.getElementById('victory-modal');
     document.getElementById('victory-shift-label').textContent =
-      `СМЕНА #${this.shift} УСПЕШНО ЗАКРЫТА! ПРОДАКШЕН ВЫЖИЛ ДО 06:00 AM!`;
+      `СМЕНА #${this.currentLevel} УСПЕШНО ЗАКРЫТА! ПРОДАКШЕН ВЫЖИЛ ДО 06:00 AM!`;
     vModal.classList.remove('hidden');
   }
 
@@ -960,6 +1139,7 @@ class ProdGame {
   }
 
   getFormattedClock() {
+    if (this.inLobby) return 'ДЕНЬ ☀️';
     const hour = Math.min(6, Math.floor((this.timeSeconds / this.totalShiftSeconds) * 6));
     const displayHour = hour === 0 ? '12' : `0${hour}`;
     return `${displayHour}:00 AM`;
@@ -967,10 +1147,12 @@ class ProdGame {
 
   renderUI() {
     // Clock & Shift
-    document.getElementById('hud-clock').textContent = this.inOvertime
+    document.getElementById('hud-clock').textContent = this.inLobby
+      ? '12:00 PM (ДЕНЬ)'
+      : this.inOvertime
       ? `ОВЕРТАЙМ: ${this.overtimeSeconds.toFixed(1)}c`
       : this.getFormattedClock();
-    document.getElementById('hud-shift').textContent = `СМЕНА #${this.shift}`;
+    document.getElementById('hud-shift').textContent = `СМЕНА #${this.currentLevel}`;
 
     // Battery
     const pwrEl = document.getElementById('hud-power');
@@ -1033,7 +1215,7 @@ class ProdGame {
     const trojanHud = document.getElementById('hud-trojan-status');
     if (trojanHud) {
       const dist = Math.round(this.monsters.trojan.distance);
-      trojanHud.textContent = `🐴 Троян: ${dist}м [Морковок: ${this.hazards.carrotsCount}]`;
+      trojanHud.textContent = `🐴 Троян: ${dist}м [Морковь: ${this.hazards.carrotsCount}] [🪙 ${this.coins}/${this.maxCoins}]`;
       trojanHud.className = `text-xs font-bold ${dist < 25 ? 'text-red-400 animate-pulse' : 'text-amber-300'}`;
     }
 
@@ -1077,6 +1259,75 @@ class ProdGame {
     }
   }
 
+  renderLobbyUI() {
+    const coinEl = document.getElementById('lobby-coins-val');
+    if (coinEl) coinEl.textContent = `${this.coins} / ${this.maxCoins}`;
+
+    // Render Level Selection Buttons
+    const lvlBox = document.getElementById('lobby-levels-box');
+    if (lvlBox) {
+      lvlBox.innerHTML = '';
+      for (let i = 1; i <= 6; i++) {
+        const cfg = SHIFT_CONFIGS[i] || SHIFT_CONFIGS[1];
+        const unlocked = i <= this.maxUnlockedLevel;
+        const btn = document.createElement('button');
+        btn.disabled = !unlocked;
+        btn.className = `p-2.5 rounded-xl border text-left transition-all ${
+          unlocked
+            ? 'bg-slate-900/90 hover:bg-slate-800 border-cyan-500/80 cursor-pointer shadow-lg'
+            : 'bg-slate-950/60 border-slate-800 text-slate-600 cursor-not-allowed opacity-50'
+        }`;
+        btn.onclick = () => this.startShiftFromLobby(i);
+        btn.innerHTML = `
+          <div class="font-extrabold text-xs ${unlocked ? 'text-cyan-300' : 'text-slate-600'}">
+            ${unlocked ? '🔓' : '🔒'} СМЕНА #${i}: ${cfg.name.split(':')[1] || ''}
+          </div>
+          <div class="text-[10px] text-slate-400 font-sans mt-0.5">${cfg.subtitle}</div>
+          <div class="text-[10px] text-amber-400 mt-1">🎯 Доп. задача: ${cfg.puzzleName} (+1🪙)</div>
+        `;
+        lvlBox.appendChild(btn);
+      }
+    }
+
+    // Render Buff Shop Buttons
+    const shopBox = document.getElementById('lobby-shop-box');
+    if (shopBox) {
+      const buffs = [
+        { id: 'antiTrojanOats', name: '🥕 Анти-Троянский Овёс', desc: 'Конь начнёт на +50м дальше и медленнее на 30%', cost: 1 },
+        { id: 'titaniumFuse', name: '⚡ Титановый Предохранитель', desc: 'Полный иммунитет к блэкаутам и выбитым пробкам', cost: 1 },
+        { id: 'mirrorGlasses', name: '🕶️ Зеркальные Очки', desc: 'Защита от Исказителя: таймер взгляда увеличен до 4.5с', cost: 1 },
+        { id: 'asbestosSeat', name: '🛡️ Асбестовая Подушка', desc: 'Пуканометр нагревается на 40% медленнее', cost: 1 },
+        { id: 'bugRepellent', name: '🪰 Репеллент от Багов', desc: 'Багогрыз не появится первую половину ночи', cost: 1 }
+      ];
+
+      shopBox.innerHTML = '';
+      buffs.forEach((b) => {
+        const active = this.activeBuffs[b.id];
+        const canBuy = this.coins >= b.cost && !active;
+        const btn = document.createElement('button');
+        btn.disabled = !canBuy;
+        btn.className = `p-2 rounded-xl border flex items-center justify-between text-left transition-all ${
+          active
+            ? 'bg-emerald-950/80 border-emerald-500 text-emerald-300 cursor-default'
+            : canBuy
+            ? 'bg-slate-900/90 hover:bg-slate-800 border-amber-500/80 cursor-pointer text-slate-200'
+            : 'bg-slate-950/60 border-slate-800 text-slate-600 cursor-not-allowed opacity-50'
+        }`;
+        btn.onclick = () => this.buyBuff(b.id);
+        btn.innerHTML = `
+          <div>
+            <div class="font-extrabold text-xs">${b.name}</div>
+            <div class="text-[10px] text-slate-400 font-sans">${b.desc}</div>
+          </div>
+          <div class="shrink-0 text-xs font-bold px-2.5 py-1 rounded ${active ? 'bg-emerald-800 text-white' : 'bg-amber-600 text-black'}">
+            ${active ? 'КУПЛЕНО' : `КУПИТЬ (1🪙)`}
+          </div>
+        `;
+        shopBox.appendChild(btn);
+      });
+    }
+  }
+
   renderCCTVFeed() {
     const camNames = {
       CAM01: { name: 'CAM 01: Внешний Шлюз', desc: 'Периметр серверной (Исказитель)' },
@@ -1090,7 +1341,6 @@ class ProdGame {
     document.getElementById('cctv-cam-title').textContent = camInfo.name;
     document.getElementById('cctv-cam-desc').textContent = camInfo.desc;
 
-    // Mini-map buttons
     ['CAM01', 'CAM02', 'CAM03', 'CAM04', 'CAM05', 'CAM06'].forEach((id) => {
       const btn = document.getElementById(`btn-${id}`);
       if (btn) {
@@ -1100,7 +1350,6 @@ class ProdGame {
       }
     });
 
-    // Occupants description
     const occupants = [];
     if (this.monsters.distortion.active && this.monsters.distortion.pos !== 'NONE') {
       occupants.push(`👁️ Исказитель зафиксирован в секторе: ${this.monsters.distortion.pos}`);

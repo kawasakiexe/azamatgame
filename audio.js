@@ -12,10 +12,12 @@ class SoundEngine {
     this.cricketGain = null;
     this.rainSource = null;
     this.cricketInterval = null;
+    this.birdInterval = null;
     this.celloInterval = null;
     this.muted = false;
     this.volume = 0.85;
     this.inBlackout = false;
+    this.isDaytime = false;
   }
 
   init() {
@@ -54,10 +56,165 @@ class SoundEngine {
   }
 
   // -------------------------------------------------------------------------
+  // Daytime Lobby Ambience (Birds singing, gentle breeze, zero dark music)
+  // -------------------------------------------------------------------------
+  setDaytime(state) {
+    this.isDaytime = state;
+    if (state) {
+      if (this.cricketInterval) clearInterval(this.cricketInterval);
+      if (this.celloInterval) clearInterval(this.celloInterval);
+      if (this.rainSource) {
+        try { this.rainSource.stop(); } catch(e){}
+        this.rainSource = null;
+      }
+      this.startBirdsongLoop();
+    } else {
+      if (this.birdInterval) clearInterval(this.birdInterval);
+      this.startAmbience();
+      this.startCelloDreadLoop();
+    }
+  }
+
+  startBirdsongLoop() {
+    if (this.birdInterval) clearInterval(this.birdInterval);
+    this._playBirdWarble();
+    this.birdInterval = setInterval(() => {
+      if (this.isDaytime && !this.muted && Math.random() < 0.75) {
+        this._playBirdWarble();
+      }
+    }, 2800);
+  }
+
+  _playBirdWarble() {
+    if (!this.ctx) return;
+    const now = this.ctx.currentTime;
+    const notes = [1900, 2300, 2750, 3200, 2450];
+    const count = 2 + Math.floor(Math.random() * 3);
+    for (let i = 0; i < count; i++) {
+      const t = now + i * 0.09;
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = 'sine';
+      const f = notes[Math.floor(Math.random() * notes.length)];
+      osc.frequency.setValueAtTime(f, t);
+      osc.frequency.linearRampToValueAtTime(f * 1.2, t + 0.035);
+      osc.frequency.linearRampToValueAtTime(f * 0.9, t + 0.075);
+
+      gain.gain.setValueAtTime(0.0001, t);
+      gain.gain.linearRampToValueAtTime(0.04, t + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.08);
+
+      osc.connect(gain);
+      gain.connect(this.masterGain);
+      osc.start(t);
+      osc.stop(t + 0.085);
+    }
+  }
+
+  // -------------------------------------------------------------------------
+  // Interactive Lobby Details Sounds (Duck, Coffee, Cabinet, Coin, Puzzle)
+  // -------------------------------------------------------------------------
+  playDuckSqueak() {
+    this.init();
+    const now = this.ctx.currentTime;
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(650, now);
+    osc.frequency.linearRampToValueAtTime(1450, now + 0.08);
+    osc.frequency.linearRampToValueAtTime(450, now + 0.16);
+
+    gain.gain.setValueAtTime(0.25, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
+
+    osc.connect(gain);
+    gain.connect(this.masterGain);
+    osc.start(now);
+    osc.stop(now + 0.19);
+  }
+
+  playCoffeeSip() {
+    this.init();
+    const now = this.ctx.currentTime;
+    this._noiseBurst(0.18, 0.15, 650);
+    setTimeout(() => {
+      if (!this.ctx) return;
+      const t = this.ctx.currentTime;
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(260, t);
+      osc.frequency.exponentialRampToValueAtTime(110, t + 0.12);
+      gain.gain.setValueAtTime(0.2, t);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.14);
+      osc.connect(gain);
+      gain.connect(this.masterGain);
+      osc.start(t);
+      osc.stop(t + 0.15);
+    }, 180);
+  }
+
+  playCabinetOpen() {
+    this.init();
+    const now = this.ctx.currentTime;
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(120, now);
+    osc.frequency.linearRampToValueAtTime(320, now + 0.18);
+    osc.frequency.linearRampToValueAtTime(95, now + 0.35);
+
+    gain.gain.setValueAtTime(0.18, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.38);
+
+    osc.connect(gain);
+    gain.connect(this.masterGain);
+    osc.start(now);
+    osc.stop(now + 0.4);
+    this._noiseBurst(0.12, 0.15, 800);
+  }
+
+  playPuzzleRotate() {
+    this.init();
+    const now = this.ctx.currentTime;
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(520, now);
+    osc.frequency.exponentialRampToValueAtTime(310, now + 0.05);
+
+    gain.gain.setValueAtTime(0.2, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.06);
+
+    osc.connect(gain);
+    gain.connect(this.masterGain);
+    osc.start(now);
+    osc.stop(now + 0.065);
+  }
+
+  playCoinSound() {
+    this.init();
+    const now = this.ctx.currentTime;
+    const osc1 = this.ctx.createOscillator();
+    const gain1 = this.ctx.createGain();
+    osc1.type = 'sine';
+    osc1.frequency.setValueAtTime(987.77, now); // B5
+    osc1.frequency.setValueAtTime(1318.51, now + 0.08); // E6
+
+    gain1.gain.setValueAtTime(0.3, now);
+    gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.45);
+
+    osc1.connect(gain1);
+    gain1.connect(this.masterGain);
+    osc1.start(now);
+    osc1.stop(now + 0.48);
+  }
+
+  // -------------------------------------------------------------------------
   // Cozy Ambience (Night Sky, Soft Rain/Breeze, and Crickets from Alfred-Game)
   // -------------------------------------------------------------------------
   startAmbience() {
-    if (!this.ctx || this.rainSource) return;
+    if (!this.ctx || this.rainSource || this.isDaytime) return;
 
     // Filtered pink noise for cozy rain / server room air conditioning
     const bufferSize = this.ctx.sampleRate * 2;

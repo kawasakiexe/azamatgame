@@ -17,7 +17,7 @@
       <div class="bg-slate-900/90 border border-slate-700 rounded-lg p-2 flex flex-col justify-between">
         <div class="flex items-center justify-between">
           <span id="hud-shift" class="text-xs font-bold text-cyan-400">СМЕНА #1</span>
-          <button onclick="document.getElementById('menu-modal').classList.remove('hidden')" class="text-[11px] px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-600 cursor-pointer">МЕНЮ</button>
+          <button onclick="window.prodGame.returnToLobby()" class="text-[11px] px-2 py-0.5 rounded bg-amber-900/80 hover:bg-amber-700 text-amber-200 border border-amber-600 cursor-pointer font-bold">ЛОББИ</button>
         </div>
         <div id="hud-clock" class="text-xl font-extrabold text-white tracking-widest mt-0.5">12:00 AM</div>
         <div class="text-[10px] text-slate-400">Цель: 06:00 AM</div>
@@ -74,7 +74,10 @@
           <button id="btn-mute" onclick="toggleAudioMute()" class="text-[10px] px-1.5 py-0.5 rounded bg-slate-800 hover:bg-slate-700 border border-slate-600 cursor-pointer">🔊 ЗВУК</button>
         </div>
         <div id="hud-trojan-status" class="text-xs font-bold text-amber-300 truncate my-0.5">🐴 Троян: 100м [Морковь: 1]</div>
-        <button onclick="window.soundEngine.playJumpscare('ai')" class="text-[10px] py-0.5 px-1.5 rounded bg-red-950/80 hover:bg-red-800 text-red-200 border border-red-700 cursor-pointer">⚡ Тест скримера</button>
+        <div class="flex items-center gap-1">
+          <button onclick="window.prodGame.togglePuzzleModal()" class="flex-1 text-[10px] py-0.5 px-1 rounded bg-cyan-950 hover:bg-cyan-800 text-cyan-200 border border-cyan-400 font-bold cursor-pointer animate-pulse truncate">🧩 ДОП. ЗАДАЧА (+1🪙)</button>
+          <button onclick="window.soundEngine.playJumpscare('ai')" class="text-[10px] py-0.5 px-1 rounded bg-red-950/80 hover:bg-red-800 text-red-200 border border-red-700 cursor-pointer">⚡ Скример</button>
+        </div>
       </div>
     </header>
 
@@ -97,6 +100,97 @@
       <!-- In-World Interactive Hover Tooltip -->
       <div id="interact-tooltip" class="hidden absolute top-4 left-1/2 -translate-x-1/2 px-4 py-1.5 rounded-full bg-slate-950/90 border border-cyan-400 text-cyan-300 text-xs font-bold pointer-events-none shadow-2xl animate-bounce">
         🎯 Взаимодействие
+      </div>
+
+      <!-- =====================================================================
+           DAYTIME LOBBY OVERLAY (Peaceful daylight, birdsong, no threats)
+           Level progression selector, Nishtyak Buff shop & easter eggs
+           ===================================================================== -->
+      <div id="lobby-overlay" class="absolute inset-0 z-20 bg-slate-950/85 backdrop-blur-md flex flex-col justify-between p-3 sm:p-4 overflow-y-auto transition-opacity duration-200">
+        <!-- Lobby Top Header -->
+        <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-700/80 pb-2.5">
+          <div class="flex items-center gap-2.5">
+            <span class="text-2xl animate-spin" style="animation-duration: 25s;">☀️</span>
+            <div>
+              <div class="flex items-center gap-2">
+                <span class="px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 font-black text-[10px] border border-amber-500/50">ДНЕВНОЕ ЛОББИ</span>
+                <span class="text-[11px] text-emerald-400 font-bold">🕊️ Поют птицы • Угрозы отключены</span>
+              </div>
+              <h2 class="text-base sm:text-lg font-extrabold text-white tracking-wide">СЕРВЕРНАЯ ДЕЖУРНОГО: ПЛАНШЕТ УПРАВЛЕНИЯ</h2>
+            </div>
+          </div>
+          <div class="flex items-center gap-2.5">
+            <!-- Coin Wallet -->
+            <div class="bg-slate-900 border-2 border-amber-400 rounded-xl px-3 py-1 flex items-center gap-2 shadow-lg">
+              <span class="text-base">🪙</span>
+              <div>
+                <div class="text-[9px] font-bold text-slate-400 leading-tight">КОПИЛКА:</div>
+                <div id="lobby-coins-val" class="text-xs sm:text-sm font-extrabold text-amber-300">0 / 3</div>
+              </div>
+            </div>
+            <!-- Toggle 3D Inspect Mode -->
+            <button onclick="toggleLobbyInspect(true)" class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-cyan-300 border border-cyan-500 font-bold text-xs cursor-pointer shadow-md">
+              👁️ Осмотреть 3D комнату
+            </button>
+          </div>
+        </div>
+
+        <!-- Lobby Content: Level Selector & Buff Shop -->
+        <div class="grid grid-cols-1 md:grid-cols-12 gap-2.5 my-2">
+          <!-- Left: Shift Progression Selector (7 cols) -->
+          <div class="md:col-span-7 bg-slate-900/80 border border-slate-700 rounded-xl p-2.5 flex flex-col justify-between shadow-xl">
+            <div>
+              <div class="flex items-center justify-between border-b border-slate-800 pb-1 mb-2">
+                <span class="text-[11px] font-extrabold text-cyan-300 uppercase tracking-wider">📱 ВЫБОР НОЧНОЙ СМЕНЫ:</span>
+                <span class="text-[10px] text-slate-400 font-sans">Строгий прогресс (до 06:00 AM)</span>
+              </div>
+              <div id="lobby-levels-box" class="grid grid-cols-1 sm:grid-cols-2 gap-1.5"></div>
+            </div>
+            <div class="text-[10px] text-slate-400 font-sans mt-2 pt-1.5 border-t border-slate-800">
+              💡 Перепроходи открытые смены, чтобы заработать монеты за решение доп. головоломок!
+            </div>
+          </div>
+
+          <!-- Right: Nishtyak Buff Shop (5 cols) -->
+          <div class="md:col-span-5 bg-slate-900/80 border border-slate-700 rounded-xl p-2.5 flex flex-col justify-between shadow-xl">
+            <div>
+              <div class="flex items-center justify-between border-b border-slate-800 pb-1 mb-2">
+                <span class="text-[11px] font-extrabold text-amber-300 uppercase tracking-wider">🛒 ЛАРЁК НИШТЯКОВ:</span>
+                <span class="text-[10px] text-slate-400 font-sans">Цена: 1🪙 (на 1 смену)</span>
+              </div>
+              <div id="lobby-shop-box" class="space-y-1.5"></div>
+            </div>
+            <div class="text-[10px] text-slate-400 font-sans mt-2 pt-1.5 border-t border-slate-800">
+              ⚠️ Баффы одноразовые на следующую смену. Максимум в кошельке — 3 монеты!
+            </div>
+          </div>
+        </div>
+
+        <!-- Lobby Bottom Interactive Room Bar -->
+        <div class="bg-slate-900/90 border border-slate-700 rounded-xl p-2 flex flex-wrap items-center justify-between gap-2 shadow-xl">
+          <div class="flex items-center gap-1.5">
+            <span class="text-[11px] font-bold text-slate-300">ПРИКОЛЫ:</span>
+            <button onclick="window.prodGame.toggleCabinet()" class="px-2 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-600 text-xs font-bold cursor-pointer">
+              🚪 Шкафчик с секретом
+            </button>
+            <button onclick="window.prodGame.clickRubberDuck()" class="px-2 py-1 rounded-lg bg-amber-950/80 hover:bg-amber-900 text-amber-200 border border-amber-600 text-xs font-bold cursor-pointer">
+              🦆 Крякнуть уточкой
+            </button>
+            <button onclick="window.prodGame.drinkCoffee()" class="px-2 py-1 rounded-lg bg-cyan-950/80 hover:bg-cyan-900 text-cyan-200 border border-cyan-600 text-xs font-bold cursor-pointer">
+              ☕ Выпить кофе
+            </button>
+          </div>
+          <div class="text-[10px] text-slate-400 font-sans">
+            Зажми ЛКМ для поворота на 360° • Кликай прямо по шкафчику сзади слева!
+          </div>
+        </div>
+      </div>
+
+      <!-- Floating return button when in 3D Inspect Mode -->
+      <div id="btn-inspect-return" class="hidden absolute top-4 right-4 z-20">
+        <button onclick="toggleLobbyInspect(false)" class="px-4 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-extrabold text-xs border-2 border-cyan-300 cursor-pointer shadow-2xl animate-pulse">
+          📋 ВЕРНУТЬСЯ К ПЛАНШЕТУ ЛОББИ
+        </button>
       </div>
 
       <!-- Door Danger Alert Pulses -->
@@ -216,7 +310,7 @@
   <!-- =======================================================================
        MODAL 1: SHIFT SELECTION MENU & LORE
        ======================================================================= -->
-  <div id="menu-modal" class="fixed inset-0 z-50 bg-black/90 backdrop-blur-sm flex items-center justify-center p-4">
+  <div id="menu-modal" class="hidden fixed inset-0 z-50 bg-black/90 backdrop-blur-sm flex items-center justify-center p-4">
     <div class="max-w-2xl w-full bg-[#0e141e] border-2 border-cyan-500/80 rounded-2xl p-6 shadow-2xl space-y-4">
       <div class="flex items-start justify-between border-b border-slate-700 pb-3">
         <div>
@@ -226,6 +320,7 @@
             Каждую смену реальные монстры-вирусы штурмуют дата-центр. Запили хотфикс на 100% до 06:00 AM, верти головой на 360°, отбивайся морковкой и не дай пукану взорвать кресло!
           </p>
         </div>
+        <button onclick="document.getElementById('menu-modal').classList.add('hidden')" class="text-slate-400 hover:text-white font-extrabold text-lg px-2 cursor-pointer">✕</button>
       </div>
 
       <div class="grid grid-cols-1 md:grid-cols-2 gap-2.5 text-xs bg-slate-900/90 border border-slate-700 rounded-xl p-3">
@@ -244,37 +339,8 @@
             <li><b>Вентиль газа:</b> крути мышкой по кругу на столе, если травит газ!</li>
             <li><b>Вырубился свет:</b> повернись назад на 180° к звездному окну и щёлкни рубильник на щитке!</li>
             <li><b>Биопринтер:</b> кликай по принтеру на столе, чтобы печатать морковки!</li>
+            <li><b>Шкафчик дежурного:</b> открой сзади слева, чтобы узреть мудрость предков!</li>
           </ul>
-        </div>
-      </div>
-
-      <div class="space-y-2">
-        <div class="text-xs font-bold text-slate-400 uppercase">ВЫБЕРИ СМЕНУ:</div>
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-          <button onclick="window.prodGame.startShift(1)" class="p-2.5 rounded-xl bg-emerald-950/80 hover:bg-emerald-900 border border-emerald-500 text-left cursor-pointer">
-            <div class="font-extrabold text-xs text-emerald-300">СМЕНА 1: ПОНЕДЕЛЬНИК</div>
-            <div class="text-[11px] text-slate-300 font-sans">Обучение • Исказитель и Троян</div>
-          </button>
-          <button onclick="window.prodGame.startShift(2)" class="p-2.5 rounded-xl bg-cyan-950/80 hover:bg-cyan-900 border border-cyan-500 text-left cursor-pointer">
-            <div class="font-extrabold text-xs text-cyan-300">СМЕНА 2: ВТОРНИК</div>
-            <div class="text-[11px] text-slate-300 font-sans">Утечка газа + Бордовый Душегуб</div>
-          </button>
-          <button onclick="window.prodGame.startShift(3)" class="p-2.5 rounded-xl bg-amber-950/80 hover:bg-amber-900 border border-amber-500 text-left cursor-pointer">
-            <div class="font-extrabold text-xs text-amber-300">СМЕНА 3: СРЕДА</div>
-            <div class="text-[11px] text-slate-300 font-sans">Багогрызы + Блэкауты электросети</div>
-          </button>
-          <button onclick="window.prodGame.startShift(4)" class="p-2.5 rounded-xl bg-orange-950/80 hover:bg-orange-900 border border-orange-500 text-left cursor-pointer">
-            <div class="font-extrabold text-xs text-orange-300">СМЕНА 4: ЧЕТВЕРГ</div>
-            <div class="text-[11px] text-slate-300 font-sans">Скоростной Троян и дефицит энергии</div>
-          </button>
-          <button onclick="window.prodGame.startShift(5)" class="p-2.5 rounded-xl bg-red-950/80 hover:bg-red-900 border border-red-500 text-left cursor-pointer">
-            <div class="font-extrabold text-xs text-red-300">СМЕНА 5: ПЯТНИЦА 13-е</div>
-            <div class="text-[11px] text-slate-300 font-sans">Сингулярность продакшена</div>
-          </button>
-          <button onclick="window.prodGame.startShift(6)" class="p-2.5 rounded-xl bg-purple-950/80 hover:bg-purple-900 border border-purple-400 text-left cursor-pointer">
-            <div class="font-extrabold text-xs text-purple-300">💀 СВОЯ НОЧЬ (20/20/20/20)</div>
-            <div class="text-[11px] text-slate-300 font-sans">Максимальный хардкор</div>
-          </button>
         </div>
       </div>
 
@@ -282,7 +348,48 @@
         <button onclick="window.soundEngine.playJumpscare('ai')" class="px-3 py-1.5 rounded-lg bg-red-900/70 hover:bg-red-800 text-red-200 text-xs font-bold border border-red-500 cursor-pointer">
           🔊 Тест скримера
         </button>
-        <span class="text-xs text-slate-400 font-sans">[Q][W][E] Шлюзы • [A][D] Пинг • [1-4] Ядро • [SPACE] Патч</span>
+        <button onclick="document.getElementById('menu-modal').classList.add('hidden'); window.prodGame.returnToLobby();" class="px-4 py-1.5 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-bold border border-cyan-400 cursor-pointer">
+          ☀️ В ЛОББИ
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- =======================================================================
+       MODAL: SECONDARY PUZZLE OBJECTIVE (CI/CD PIPELINE)
+       ======================================================================= -->
+  <div id="puzzle-modal" class="hidden fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="max-w-md w-full bg-[#0e141e] border-2 border-cyan-400 rounded-2xl p-5 shadow-2xl space-y-3">
+      <div class="flex items-center justify-between border-b border-slate-700 pb-2">
+        <div class="flex items-center gap-2">
+          <span class="text-xl">🧩</span>
+          <h3 class="text-sm font-extrabold text-white tracking-wide uppercase">
+            ДОП. ЗАДАЧА: CI/CD PIPELINE (+1🪙)
+          </h3>
+        </div>
+        <button onclick="window.prodGame.togglePuzzleModal()" class="text-slate-400 hover:text-white font-extrabold text-sm px-2 cursor-pointer">✕</button>
+      </div>
+
+      <p class="text-xs text-slate-300 font-sans">
+        Вращай секции труб кликом мыши, чтобы проложить путь от <b>Git Commit</b> (вход вверху слева) до <b>Production</b> (выход внизу справа). За успешный прогон получишь <b>1 Монету</b> на покупку ништяков!
+      </p>
+
+      <!-- 3x3 Pipe Grid -->
+      <div id="puzzle-pipe-grid" class="grid grid-cols-3 gap-2 p-3 bg-slate-950 rounded-xl border border-cyan-500/50 max-w-[210px] mx-auto justify-items-center"></div>
+
+      <div class="p-2 rounded-lg bg-slate-900 border border-slate-700 text-center">
+        <div id="puzzle-status-text" class="text-xs text-slate-300 font-sans">
+          Вращай трубы кликом. Соедини вход с выходом!
+        </div>
+      </div>
+
+      <div class="flex items-center justify-between gap-2 pt-1">
+        <button onclick="window.prodGame.checkPipelineConnection()" class="flex-1 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-extrabold text-xs border border-cyan-300 cursor-pointer shadow-lg transition-transform active:scale-95">
+          🚀 ЗАПУСТИТЬ ШАРИК БИЛДА
+        </button>
+        <button onclick="window.prodGame.togglePuzzleModal()" class="py-2 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold border border-slate-600 cursor-pointer">
+          ЗАКРЫТЬ
+        </button>
       </div>
     </div>
   </div>
@@ -298,11 +405,11 @@
       </h2>
       <p id="jumpscare-desc" class="text-sm text-slate-200 font-sans"></p>
       <div class="flex items-center justify-center gap-3 pt-2">
-        <button onclick="window.prodGame.startShift(window.prodGame.shift)" class="px-5 py-2.5 rounded-xl font-extrabold text-sm bg-red-600 hover:bg-red-500 text-white border-2 border-yellow-300 cursor-pointer">
+        <button onclick="window.prodGame.startShiftFromLobby(window.prodGame.currentLevel)" class="px-5 py-2.5 rounded-xl font-extrabold text-sm bg-red-600 hover:bg-red-500 text-white border-2 border-yellow-300 cursor-pointer shadow-lg">
           🔄 ПЕРЕЗАПУСТИТЬ СМЕНУ
         </button>
-        <button onclick="document.getElementById('gameover-modal').classList.add('hidden'); document.getElementById('menu-modal').classList.remove('hidden');" class="px-4 py-2.5 rounded-xl font-bold text-sm bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-600 cursor-pointer">
-          📋 В МЕНЮ СМЕН
+        <button onclick="window.prodGame.returnToLobby()" class="px-4 py-2.5 rounded-xl font-bold text-sm bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-600 cursor-pointer">
+          ☀️ В ДНЕВНОЕ ЛОББИ
         </button>
       </div>
     </div>
@@ -321,11 +428,11 @@
         Патч задеплоен на 100%, монстры отбиты, а твой стул остался целым и холодным!
       </p>
       <div class="flex items-center justify-center gap-3 pt-2">
-        <button onclick="window.prodGame.startShift(Math.min(6, window.prodGame.shift + 1))" class="px-5 py-2.5 rounded-xl font-extrabold text-sm bg-emerald-600 hover:bg-emerald-500 text-white border border-emerald-300 cursor-pointer">
+        <button onclick="window.prodGame.startShiftFromLobby(Math.min(6, window.prodGame.currentLevel + 1))" class="px-5 py-2.5 rounded-xl font-extrabold text-sm bg-emerald-600 hover:bg-emerald-500 text-white border border-emerald-300 cursor-pointer shadow-lg">
           ⏭️ СЛЕДУЮЩАЯ СМЕНА
         </button>
-        <button onclick="document.getElementById('victory-modal').classList.add('hidden'); document.getElementById('menu-modal').classList.remove('hidden');" class="px-4 py-2.5 rounded-xl font-bold text-sm bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-600 cursor-pointer">
-          📋 В МЕНЮ
+        <button onclick="window.prodGame.returnToLobby()" class="px-4 py-2.5 rounded-xl font-bold text-sm bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-600 cursor-pointer">
+          ☀️ В ДНЕВНОЕ ЛОББИ
         </button>
       </div>
     </div>
@@ -346,10 +453,25 @@
       document.getElementById('btn-mute').textContent = muted ? '🔇 БЕЗ ЗВУКА' : '🔊 ЗВУК';
     }
 
-    // Auto-init on load
+    function toggleLobbyInspect(inspect) {
+      const overlay = document.getElementById('lobby-overlay');
+      const inspectBtn = document.getElementById('btn-inspect-return');
+      if (inspect) {
+        overlay.classList.add('opacity-0', 'pointer-events-none');
+        inspectBtn.classList.remove('hidden');
+      } else {
+        overlay.classList.remove('opacity-0', 'pointer-events-none');
+        inspectBtn.classList.add('hidden');
+      }
+    }
+
+    // Auto-init on load in peaceful Daytime Lobby
     window.addEventListener('DOMContentLoaded', () => {
       if (window.view3D && !window.view3D.initialized) {
         window.view3D.init('three-viewport');
+      }
+      if (window.prodGame) {
+        window.prodGame.returnToLobby();
       }
     });
 
@@ -375,6 +497,8 @@
         window.prodGame.toggleSwitch('seatCooler');
       } else if (key === 'v' || key === 'м') {
         window.prodGame.purgeVentsWithSteam();
+      } else if (key === 'p' || key === 'з') {
+        window.prodGame.togglePuzzleModal();
       } else if (e.code === 'Tab') {
         e.preventDefault();
         window.prodGame.toggleCCTV();
@@ -389,5 +513,7 @@
       }
     });
   </script>
+</body>
+</html>
 </body>
 </html>
