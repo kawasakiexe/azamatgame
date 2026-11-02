@@ -149,3 +149,31 @@ body {
   pointer-events: none;
   mix-blend-mode: screen;
 }
+
+/* 3D FNaF Viewport & CCTV Tablet Styling */
+#three-viewport {
+  position: relative;
+  overflow: hidden;
+  touch-action: none;
+}
+
+@keyframes tablet-up {
+  0% { transform: translateY(100%); opacity: 0; }
+  100% { transform: translateY(0); opacity: 1; }
+}
+
+.tablet-active {
+  animation: tablet-up 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.cctv-static {
+  background: radial-gradient(circle, rgba(6,182,212,0.08) 0%, rgba(0,0,0,0.55) 100%);
+  pointer-events: none;
+}
+
+.cctv-scanline {
+  background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.35) 50%),
+              linear-gradient(90deg, rgba(255, 0, 0, 0.04), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.04));
+  background-size: 100% 3px, 6px 100%;
+  pointer-events: none;
+}

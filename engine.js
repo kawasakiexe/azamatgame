@@ -254,6 +254,10 @@ class ProdGame {
     document.getElementById('gameover-modal').classList.add('hidden');
     document.getElementById('victory-modal').classList.add('hidden');
 
+    if (window.view3D && !window.view3D.initialized) {
+      window.view3D.init('three-viewport');
+    }
+
     this.lastTick = performance.now();
     if (this.loopId) cancelAnimationFrame(this.loopId);
     this.tick();
@@ -764,8 +768,11 @@ class ProdGame {
     this.gameOver = true;
     if (this.loopId) cancelAnimationFrame(this.loopId);
 
-    // Fire razor-sharp WebAudio screamer!
+    // Fire razor-sharp WebAudio screamer & 3D lunge animation!
     window.soundEngine.playJumpscare(type);
+    if (window.view3D && window.view3D.initialized) {
+      window.view3D.startJumpscare(type);
+    }
 
     const modal = document.getElementById('gameover-modal');
     const titleEl = document.getElementById('jumpscare-title');
@@ -1022,16 +1029,20 @@ class ProdGame {
     const toggleViewBtn = document.getElementById('btn-toggle-cctv');
 
     if (this.cctvOpen) {
-      ideView.classList.add('hidden');
-      cctvView.classList.remove('hidden');
-      toggleViewBtn.textContent = '💻 ВЕРНУТЬСЯ В IDE (ПИЛИТЬ ПАТЧ) [TAB]';
-      toggleViewBtn.className = 'px-4 py-2 rounded-lg font-bold text-xs bg-emerald-600 hover:bg-emerald-500 text-white border border-emerald-300';
+      if (ideView) ideView.classList.add('hidden');
+      if (cctvView) cctvView.classList.remove('hidden');
+      if (toggleViewBtn) {
+        toggleViewBtn.textContent = '💻 ВЕРНУТЬСЯ В IDE (ПИЛИТЬ ПАТЧ) [TAB]';
+        toggleViewBtn.className = 'px-4 py-2 rounded-lg font-bold text-xs bg-emerald-600 hover:bg-emerald-500 text-white border border-emerald-300';
+      }
       this.renderCCTVFeed();
     } else {
-      cctvView.classList.add('hidden');
-      ideView.classList.remove('hidden');
-      toggleViewBtn.textContent = '📹 КАМЕРЫ СЕРВЕРНОЙ (CCTV) [TAB]';
-      toggleViewBtn.className = 'px-4 py-2 rounded-lg font-bold text-xs bg-cyan-600 hover:bg-cyan-500 text-white border border-cyan-300';
+      if (cctvView) cctvView.classList.add('hidden');
+      if (ideView) ideView.classList.remove('hidden');
+      if (toggleViewBtn) {
+        toggleViewBtn.textContent = '📹 КАМЕРЫ СЕРВЕРНОЙ (CCTV) [TAB]';
+        toggleViewBtn.className = 'px-4 py-2 rounded-lg font-bold text-xs bg-cyan-600 hover:bg-cyan-500 text-white border border-cyan-300';
+      }
 
       // Render code lines
       const codeBox = document.getElementById('ide-code-lines');
@@ -1039,6 +1050,37 @@ class ProdGame {
         codeBox.innerHTML = this.codeLines
           .map((l) => `<div class="text-emerald-400 font-mono text-xs">${l}</div>`)
           .join('');
+      }
+    }
+
+    // 3D CCTV Tablet Overlay Sync
+    const tabletModal = document.getElementById('cctv-tablet-modal');
+    if (tabletModal) {
+      if (this.cctvOpen) {
+        tabletModal.classList.remove('hidden');
+        tabletModal.classList.add('tablet-active');
+        this.renderCCTVFeed();
+      } else {
+        tabletModal.classList.add('hidden');
+        tabletModal.classList.remove('tablet-active');
+      }
+    }
+
+    // 3D Viewport Door Alert Pulses
+    const leftAlert = document.getElementById('door-alert-left');
+    if (leftAlert) {
+      if (this.pingLeftActive && this.ai.bonnie.pos === 'DOOR_LEFT') {
+        leftAlert.classList.remove('hidden');
+      } else {
+        leftAlert.classList.add('hidden');
+      }
+    }
+    const rightAlert = document.getElementById('door-alert-right');
+    if (rightAlert) {
+      if (this.pingRightActive && this.ai.chica.pos === 'DOOR_RIGHT') {
+        rightAlert.classList.remove('hidden');
+      } else {
+        rightAlert.classList.add('hidden');
       }
     }
 
