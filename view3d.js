@@ -1,7 +1,7 @@
 // ============================================================================
-// ПЯТЬ НОЧЕЙ НА ПРОДЕ — 3D WebGL Engine & FNaF Office Experience
-// High-performance Three.js procedural 3D world with interactive raycasting,
-// smooth camera panning, CCTV security cameras, 3D animatronics & jumpscares.
+// ПЯТЬ НОЧЕЙ НА ПРОДЕ — 3D PS1 Retro Horror Engine & 360° Office Experience
+// Authentic PS1 low-poly aesthetic, 360° panoramic view, Starry back window,
+// 4 Unique Monsters, Draggable Gas Valve, 3D Bio-Printer, and CCTV Tablet.
 // ============================================================================
 
 class View3D {
@@ -12,20 +12,23 @@ class View3D {
     this.renderer = null;
     this.clock = new THREE.Clock();
 
-    // Mouse / Camera Pan controls (FNaF-style head rotation)
-    this.mouseX = 0.5; // 0 (left) to 1 (right)
-    this.mouseY = 0.5;
+    // 360-degree Mouse Pan
+    this.yaw = 0; // 0 to 2*PI (full 360 rotation!)
+    this.pitch = 0; // -0.5 to +0.5
     this.targetYaw = 0;
-    this.currentYaw = 0;
     this.targetPitch = 0;
-    this.currentPitch = 0;
-    this.isPanning = true;
+    this.isDragging = false;
+    this.prevMouseX = 0;
+    this.prevMouseY = 0;
 
     // Interactive Raycaster
     this.raycaster = new THREE.Raycaster();
     this.mouseVec = new THREE.Vector2();
     this.interactables = [];
-    this.hoveredObject = null;
+
+    // Valve dragging state
+    this.isDraggingValve = false;
+    this.valveLastAngle = 0;
 
     // 3D Scene Components
     this.officeGroup = null;
@@ -37,48 +40,54 @@ class View3D {
     this.crtCanvas = null;
     this.crtTexture = null;
     this.pukanDialNeedle = null;
-    this.steamParticles = null;
 
-    // DIP Switches (3D levers)
-    this.dipLevers = [];
-    this.dipLeds = [];
+    // Gas Valve 3D Wheel
+    this.gasValveWheel = null;
+    this.gasPipe = null;
+
+    // 3D Bio-Printer (Carrot generator)
+    this.printerMesh = null;
+    this.carrotHologram = null;
+
+    // Breaker Panel (Back Wall)
+    this.breakerLever = null;
+
+    // Ceiling Vent Grate & Tail
+    this.ventGrate = null;
+    this.burgundyTail = null;
 
     // Lighting
     this.officeLight = null;
     this.leftSpotlight = null;
     this.rightSpotlight = null;
     this.alarmStrobe = null;
-    this.leftHallLight = null;
-    this.rightHallLight = null;
+    this.nightSkyLight = null;
 
-    // 3D Animatronic Entity Models
-    this.entities = {
-      bonnie: null,
-      chica: null,
-      foxy: null,
-      freddy: null
+    // 4 Monsters 3D Meshes
+    this.monsters3D = {
+      distortion: null, // Giant with bright eyes & distortion
+      tadpole: null,    // Small rat-tadpole hybrid
+      trojan: null,     // Static wooden horse in pure T-pose
+      burgundy: null    // Crimson vent stalker
     };
 
     // CCTV Security Camera Positions
     this.camPositions = {
       CAM01: { pos: new THREE.Vector3(0, 3.8, -14.5), lookAt: new THREE.Vector3(0, 1.5, -24) },   // Gateway
       CAM02: { pos: new THREE.Vector3(-7.5, 3.5, -4.5), lookAt: new THREE.Vector3(-7.5, 1.2, 0) }, // Left SSH
-      CAM03: { pos: new THREE.Vector3(0, 4.0, -8.0), lookAt: new THREE.Vector3(0, 1.2, -14) },    // Center Hub
+      CAM03: { pos: new THREE.Vector3(0, 4.0, -8.0), lookAt: new THREE.Vector3(0, 1.2, -14) },    // Center Hub (Trojan tunnel)
       CAM04: { pos: new THREE.Vector3(7.5, 3.5, -4.5), lookAt: new THREE.Vector3(7.5, 1.2, 0) },  // Right SQL
-      CAM05: { pos: new THREE.Vector3(0, 3.2, -18.5), lookAt: new THREE.Vector3(0, 1.5, -23) },   // Pirate Cove
+      CAM05: { pos: new THREE.Vector3(0, 3.2, -18.5), lookAt: new THREE.Vector3(0, 1.5, -23) },   // Trojan Stash
       CAM06: { pos: new THREE.Vector3(0, 2.8, -4.5), lookAt: new THREE.Vector3(0, 1.5, 0) }       // Approach Vent
     };
 
-    // Jumpscare Animation State
+    // Jumpscare Animation
     this.jumpscareActive = false;
-    this.jumpscareEntity = null;
-    this.jumpscareTimer = 0;
     this.jumpscareType = 'ai';
+    this.jumpscareTimer = 0;
+    this.jumpscareEntity = null;
 
-    // Materials and procedural textures cache
-    this.materials = {};
     this.textures = {};
-
     this.initialized = false;
   }
 
@@ -91,113 +100,99 @@ class View3D {
 
     // 1. Scene & Camera
     this.scene = new THREE.Scene();
-    this.scene.background = new THREE.Color(0x05070a);
-    this.scene.fog = new THREE.FogExp2(0x05070a, 0.045);
+    this.scene.background = new THREE.Color(0x040608);
+    this.scene.fog = new THREE.FogExp2(0x040608, 0.04);
 
-    this.camera = new THREE.PerspectiveCamera(68, width / height, 0.1, 80);
-    this.camera.position.set(0, 1.65, 0.35); // Eye height sitting at desk
+    this.camera = new THREE.PerspectiveCamera(70, width / height, 0.1, 90);
+    this.camera.position.set(0, 1.62, 0.15); // eye level at office chair
 
-    // 2. WebGL Renderer
-    this.renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
+    // 2. WebGL Renderer with PS1 Low-Res Crunchy Look
+    this.renderer = new THREE.WebGLRenderer({ antialias: false, powerPreference: 'high-performance' });
+    // PS1 style: render at 640x384 scaled up with pixelated canvas!
     this.renderer.setSize(width, height);
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    this.renderer.shadowMap.enabled = true;
-    this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-    this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    this.renderer.toneMappingExposure = 1.1;
+    this.renderer.setPixelRatio(0.85); // Crunchy retro pixel density!
+    this.renderer.domElement.style.imageRendering = 'pixelated';
+    this.renderer.shadowMap.enabled = false; // PS1 did not have soft dynamic shadow maps!
 
     this.container.innerHTML = '';
     this.container.appendChild(this.renderer.domElement);
 
-    // 3. Build Textures & Materials
-    this._initProceduralTextures();
+    // 3. Textures
+    this._initTextures();
 
-    // 4. Build 3D World (Office, Doors, Corridors, Desks, Animatronics)
+    // 4. Build 360 Office Room, Starry Sky Window, Desk, Doors & Monsters
     this._buildOffice();
-    this._buildAnimatronics();
+    this._buildStarryBackWindow();
+    this._buildDesk();
+    this._buildMonsters();
     this._setupLighting();
 
-    // 5. Setup Events (Mouse Look, Clicks, Window Resize)
+    // 5. Setup Listeners
     this._setupListeners();
 
     this.initialized = true;
     this.animate();
   }
 
-  // Generate procedural canvas textures to ensure 100% offline self-contained operation
-  _initProceduralTextures() {
-    // A. Metal Grate / Tile Floor
-    const floorCanvas = document.createElement('canvas');
-    floorCanvas.width = 256;
-    floorCanvas.height = 256;
-    const fctx = floorCanvas.getContext('2d');
-    fctx.fillStyle = '#151a22';
-    fctx.fillRect(0, 0, 256, 256);
-    fctx.strokeStyle = '#222b38';
-    fctx.lineWidth = 4;
-    for (let i = 0; i < 256; i += 32) {
-      fctx.strokeRect(i, 0, 32, 256);
-      fctx.strokeRect(0, i, 256, 32);
-    }
-    fctx.fillStyle = '#0f131a';
-    for (let x = 4; x < 256; x += 32) {
-      for (let y = 4; y < 256; y += 32) {
-        fctx.fillRect(x, y, 24, 24);
-      }
-    }
-    this.textures.floor = new THREE.CanvasTexture(floorCanvas);
+  reset() {
+    this.targetYaw = 0;
+    this.targetPitch = 0;
+    this.yaw = 0;
+    this.pitch = 0;
+    this.jumpscareActive = false;
+  }
+
+  _initTextures() {
+    // A. PS1 Metal Floor Tiles
+    const floorC = document.createElement('canvas');
+    floorC.width = 128;
+    floorC.height = 128;
+    const fctx = floorC.getContext('2d');
+    fctx.fillStyle = '#141a24';
+    fctx.fillRect(0, 0, 128, 128);
+    fctx.strokeStyle = '#252f3d';
+    fctx.lineWidth = 3;
+    fctx.strokeRect(2, 2, 60, 60);
+    fctx.strokeRect(66, 2, 60, 60);
+    fctx.strokeRect(2, 66, 60, 60);
+    fctx.strokeRect(66, 66, 60, 60);
+    this.textures.floor = new THREE.CanvasTexture(floorC);
     this.textures.floor.wrapS = THREE.RepeatWrapping;
     this.textures.floor.wrapT = THREE.RepeatWrapping;
     this.textures.floor.repeat.set(8, 8);
+    this.textures.floor.magFilter = THREE.NearestFilter;
+    this.textures.floor.minFilter = THREE.NearestFilter;
 
-    // B. Hazard Stripes (Black & Yellow)
-    const hazardCanvas = document.createElement('canvas');
-    hazardCanvas.width = 128;
-    hazardCanvas.height = 128;
-    const hctx = hazardCanvas.getContext('2d');
-    hctx.fillStyle = '#111';
-    hctx.fillRect(0, 0, 128, 128);
+    // B. Hazard Warning Stripes
+    const hazC = document.createElement('canvas');
+    hazC.width = 64;
+    hazC.height = 64;
+    const hctx = hazC.getContext('2d');
+    hctx.fillStyle = '#0f172a';
+    hctx.fillRect(0, 0, 64, 64);
     hctx.fillStyle = '#eab308';
     hctx.beginPath();
-    for (let i = -128; i < 256; i += 32) {
+    for (let i = -64; i < 128; i += 24) {
       hctx.moveTo(i, 0);
-      hctx.lineTo(i + 16, 0);
-      hctx.lineTo(i + 48, 128);
-      hctx.lineTo(i + 32, 128);
+      hctx.lineTo(i + 12, 0);
+      hctx.lineTo(i + 36, 64);
+      hctx.lineTo(i + 24, 64);
       hctx.closePath();
     }
     hctx.fill();
-    this.textures.hazard = new THREE.CanvasTexture(hazardCanvas);
+    this.textures.hazard = new THREE.CanvasTexture(hazC);
     this.textures.hazard.wrapS = THREE.RepeatWrapping;
     this.textures.hazard.wrapT = THREE.RepeatWrapping;
     this.textures.hazard.repeat.set(4, 1);
+    this.textures.hazard.magFilter = THREE.NearestFilter;
 
-    // C. CRT IDE Terminal Texture (Live Render)
+    // C. Live CRT IDE Texture
     this.crtCanvas = document.createElement('canvas');
     this.crtCanvas.width = 512;
     this.crtCanvas.height = 384;
     this.crtTexture = new THREE.CanvasTexture(this.crtCanvas);
+    this.crtTexture.magFilter = THREE.NearestFilter;
     this._updateCRTTexture();
-
-    // D. Metal Wall Texture
-    const wallCanvas = document.createElement('canvas');
-    wallCanvas.width = 128;
-    wallCanvas.height = 128;
-    const wctx = wallCanvas.getContext('2d');
-    wctx.fillStyle = '#181f2b';
-    wctx.fillRect(0, 0, 128, 128);
-    wctx.strokeStyle = '#263142';
-    wctx.strokeRect(2, 2, 124, 124);
-    // Rivets
-    wctx.fillStyle = '#64748b';
-    wctx.fillRect(8, 8, 4, 4);
-    wctx.fillRect(116, 8, 4, 4);
-    wctx.fillRect(8, 116, 4, 4);
-    wctx.fillRect(116, 116, 4, 4);
-    this.textures.wall = new THREE.CanvasTexture(wallCanvas);
-    this.textures.wall.wrapS = THREE.RepeatWrapping;
-    this.textures.wall.wrapT = THREE.RepeatWrapping;
-    this.textures.wall.repeat.set(4, 2);
   }
 
   _buildOffice() {
@@ -206,740 +201,669 @@ class View3D {
 
     // Floor
     const floorGeo = new THREE.PlaneGeometry(16, 16);
-    const floorMat = new THREE.MeshStandardMaterial({
-      map: this.textures.floor,
-      roughness: 0.75,
-      metalness: 0.35
-    });
+    const floorMat = new THREE.MeshLambertMaterial({ map: this.textures.floor });
     const floor = new THREE.Mesh(floorGeo, floorMat);
     floor.rotation.x = -Math.PI / 2;
-    floor.receiveShadow = true;
     this.officeGroup.add(floor);
 
-    // Ceiling
-    const ceilingMat = new THREE.MeshStandardMaterial({ color: 0x111620, roughness: 0.9 });
+    // Ceiling with Ventilation Grate
+    const ceilingMat = new THREE.MeshLambertMaterial({ color: 0x0f1520 });
     const ceiling = new THREE.Mesh(floorGeo, ceilingMat);
-    ceiling.position.y = 4.2;
+    ceiling.position.y = 4.0;
     ceiling.rotation.x = Math.PI / 2;
     this.officeGroup.add(ceiling);
 
-    // Back Wall (behind player)
-    const backWallGeo = new THREE.PlaneGeometry(16, 4.2);
-    const wallMat = new THREE.MeshStandardMaterial({ map: this.textures.wall, roughness: 0.8 });
-    const backWall = new THREE.Mesh(backWallGeo, wallMat);
-    backWall.position.set(0, 2.1, 3.2);
-    backWall.rotation.y = Math.PI;
-    this.officeGroup.add(backWall);
-
-    // Celebrate Poster on back wall
-    const posterCanvas = document.createElement('canvas');
-    posterCanvas.width = 256;
-    posterCanvas.height = 160;
-    const pctx = posterCanvas.getContext('2d');
-    pctx.fillStyle = '#1e293b';
-    pctx.fillRect(0, 0, 256, 160);
-    pctx.strokeStyle = '#ef4444';
-    pctx.lineWidth = 6;
-    pctx.strokeRect(4, 4, 248, 152);
-    pctx.fillStyle = '#f59e0b';
-    pctx.font = 'bold 22px Courier New';
-    pctx.fillText('CELEBRATE!', 60, 45);
-    pctx.fillStyle = '#38bdf8';
-    pctx.font = 'bold 15px Courier New';
-    pctx.fillText('DEPLOY ON FRIDAY', 42, 85);
-    pctx.fillStyle = '#ef4444';
-    pctx.font = 'bold 13px Courier New';
-    pctx.fillText('СКУФНЕТ-666 СЛЕДИТ ЗА ТОБОЙ', 15, 125);
-    const posterTex = new THREE.CanvasTexture(posterCanvas);
-    const poster = new THREE.Mesh(
-      new THREE.PlaneGeometry(2.4, 1.5),
-      new THREE.MeshStandardMaterial({ map: posterTex })
+    // Ceiling Vent Hole right above the office desk (for Burgundy Stalker!)
+    const ventFrame = new THREE.Mesh(
+      new THREE.BoxGeometry(1.6, 0.15, 1.6),
+      new THREE.MeshLambertMaterial({ color: 0x1e293b })
     );
-    poster.position.set(0, 2.3, 3.18);
-    poster.rotation.y = Math.PI;
-    this.officeGroup.add(poster);
+    ventFrame.position.set(0, 3.95, -0.8);
+    this.officeGroup.add(ventFrame);
 
-    // Front Wall (in front of desk with center corridor arch)
-    const frontWallL = new THREE.Mesh(new THREE.BoxGeometry(5.5, 4.2, 0.4), wallMat);
-    frontWallL.position.set(-4.5, 2.1, -3.2);
-    this.officeGroup.add(frontWallL);
+    // Rattling Vent Grate
+    const grateGeo = new THREE.BoxGeometry(1.4, 0.05, 1.4);
+    const grateMat = new THREE.MeshLambertMaterial({ color: 0x475569, wireframe: true });
+    this.ventGrate = new THREE.Mesh(grateGeo, grateMat);
+    this.ventGrate.position.set(0, 3.9, -0.8);
+    this.ventGrate.userData = { action: 'purgeSteam', hint: 'Продуть решётку паром [V]' };
+    this.officeGroup.add(this.ventGrate);
+    this.interactables.push(this.ventGrate);
 
-    const frontWallR = new THREE.Mesh(new THREE.BoxGeometry(5.5, 4.2, 0.4), wallMat);
-    frontWallR.position.set(4.5, 2.1, -3.2);
-    this.officeGroup.add(frontWallR);
+    // Burgundy Alien Tail (Twitches inside the vent grate!)
+    this.burgundyTail = new THREE.Group();
+    this.burgundyTail.position.set(0, 3.82, -0.8);
+    const tailMesh = new THREE.Mesh(
+      new THREE.ConeGeometry(0.12, 0.75, 5),
+      new THREE.MeshLambertMaterial({ color: 0x881337 }) // злобно-бордовый
+    );
+    tailMesh.rotation.x = Math.PI * 0.85;
+    this.burgundyTail.add(tailMesh);
+    this.burgundyTail.visible = false;
+    this.officeGroup.add(this.burgundyTail);
 
-    const frontWallTop = new THREE.Mesh(new THREE.BoxGeometry(5.0, 1.4, 0.4), wallMat);
-    frontWallTop.position.set(0, 3.5, -3.2);
-    this.officeGroup.add(frontWallTop);
+    // Front Wall (Z = -4.5) with Central Gateway Arch
+    const wallMat = new THREE.MeshLambertMaterial({ color: 0x18202c });
+    const frontL = new THREE.Mesh(new THREE.BoxGeometry(5.5, 4.0, 0.4), wallMat);
+    frontL.position.set(-4.5, 2.0, -4.5);
+    this.officeGroup.add(frontL);
 
-    // Center Shutter Door (Рубильник ЦОД)
-    const centerDoorGeo = new THREE.BoxGeometry(4.4, 3.0, 0.15);
-    const doorMat = new THREE.MeshStandardMaterial({
-      color: 0x334155,
-      metalness: 0.8,
-      roughness: 0.35,
-      map: this.textures.hazard
-    });
-    this.centerDoorMesh = new THREE.Mesh(centerDoorGeo, doorMat);
-    this.centerDoorMesh.position.set(0, 4.5, -3.15); // Stored up in ceiling when open
+    const frontR = new THREE.Mesh(new THREE.BoxGeometry(5.5, 4.0, 0.4), wallMat);
+    frontR.position.set(4.5, 2.0, -4.5);
+    this.officeGroup.add(frontR);
+
+    const frontTop = new THREE.Mesh(new THREE.BoxGeometry(5.0, 1.2, 0.4), wallMat);
+    frontTop.position.set(0, 3.4, -4.5);
+    this.officeGroup.add(frontTop);
+
+    // Center Blast Shutter
+    const cDoorGeo = new THREE.BoxGeometry(4.2, 2.9, 0.15);
+    const doorMat = new THREE.MeshLambertMaterial({ color: 0x334155, map: this.textures.hazard });
+    this.centerDoorMesh = new THREE.Mesh(cDoorGeo, doorMat);
+    this.centerDoorMesh.position.set(0, 4.2, -4.45);
     this.officeGroup.add(this.centerDoorMesh);
 
-    // Left Wall with Doorway (Port 22 SSH)
+    // Left Doorway (Port 22 SSH) at X = -5.5
     this._buildLeftDoorway();
 
-    // Right Wall with Doorway (Port 5432 SQL)
+    // Right Doorway (Port 5432 SQL) at X = 5.5
     this._buildRightDoorway();
+  }
 
-    // The Central DevOps Desk & Props
-    this._buildDesk();
+  // =========================================================================
+  // PANORAMIC BACK WINDOW (360° View): Dark Night Sky, Stars & Breaker Box
+  // =========================================================================
+  _buildStarryBackWindow() {
+    const wallMat = new THREE.MeshLambertMaterial({ color: 0x18202c });
 
-    // Corridors stretching outside left and right
-    this._buildHallways();
+    // Back Wall (Z = +4.5) with large window cutout
+    const backL = new THREE.Mesh(new THREE.BoxGeometry(4.0, 4.0, 0.4), wallMat);
+    backL.position.set(-5.0, 2.0, 4.5);
+    this.officeGroup.add(backL);
+
+    const backR = new THREE.Mesh(new THREE.BoxGeometry(4.0, 4.0, 0.4), wallMat);
+    backR.position.set(5.0, 2.0, 4.5);
+    this.officeGroup.add(backR);
+
+    const backTop = new THREE.Mesh(new THREE.BoxGeometry(8.0, 1.0, 0.4), wallMat);
+    backTop.position.set(0, 3.5, 4.5);
+    this.officeGroup.add(backTop);
+
+    const backBottom = new THREE.Mesh(new THREE.BoxGeometry(8.0, 1.0, 0.4), wallMat);
+    backBottom.position.set(0, 0.5, 4.5);
+    this.officeGroup.add(backBottom);
+
+    // Big Glass Window Frame
+    const frameMat = new THREE.MeshLambertMaterial({ color: 0x090d16 });
+    const winFrame = new THREE.Mesh(new THREE.BoxGeometry(7.8, 2.2, 0.1), frameMat);
+    winFrame.position.set(0, 2.0, 4.55);
+    this.officeGroup.add(winFrame);
+
+    // Glass pane with subtle transparency
+    const glass = new THREE.Mesh(
+      new THREE.PlaneGeometry(7.6, 2.0),
+      new THREE.MeshLambertMaterial({ color: 0x1e3a5f, transparent: true, opacity: 0.25 })
+    );
+    glass.position.set(0, 2.0, 4.58);
+    glass.rotation.y = Math.PI;
+    this.officeGroup.add(glass);
+
+    // Deep Night Sky Backdrop outside window (Stars, Moon, Trees)
+    const skyCanvas = document.createElement('canvas');
+    skyCanvas.width = 512;
+    skyCanvas.height = 256;
+    const sctx = skyCanvas.getContext('2d');
+    // Dark starry night gradient
+    const grad = sctx.createLinearGradient(0, 0, 0, 256);
+    grad.addColorStop(0, '#020617');
+    grad.addColorStop(0.7, '#070f26');
+    grad.addColorStop(1, '#0f172a');
+    sctx.fillStyle = grad;
+    sctx.fillRect(0, 0, 512, 256);
+
+    // Twinkling Stars
+    sctx.fillStyle = '#ffffff';
+    for (let i = 0; i < 90; i++) {
+      const sx = Math.random() * 512;
+      const sy = Math.random() * 190;
+      const r = Math.random() > 0.85 ? 2.5 : 1.2;
+      sctx.beginPath();
+      sctx.arc(sx, sy, r, 0, Math.PI * 2);
+      sctx.fill();
+    }
+
+    // Glowing Full Moon
+    sctx.fillStyle = '#fef08a';
+    sctx.beginPath();
+    sctx.arc(380, 75, 32, 0, Math.PI * 2);
+    sctx.fill();
+
+    // Silhouettes of distant antenna towers & pines
+    sctx.fillStyle = '#010409';
+    sctx.beginPath();
+    sctx.moveTo(0, 256);
+    for (let x = 0; x <= 512; x += 32) {
+      const h = 20 + Math.sin(x * 0.1) * 15 + Math.random() * 10;
+      sctx.lineTo(x, 256 - h);
+    }
+    sctx.lineTo(512, 256);
+    sctx.closePath();
+    sctx.fill();
+
+    const skyTex = new THREE.CanvasTexture(skyCanvas);
+    const skyPlane = new THREE.Mesh(
+      new THREE.PlaneGeometry(16, 7),
+      new THREE.MeshBasicMaterial({ map: skyTex })
+    );
+    skyPlane.position.set(0, 2.5, 7.5); // outside in the distance
+    skyPlane.rotation.y = Math.PI;
+    this.scene.add(skyPlane);
+
+    // =======================================================================
+    // ELECTRICAL CIRCUIT BREAKER BOX (On back wall, for blackout repairs!)
+    // =======================================================================
+    const breakerBoxGroup = new THREE.Group();
+    breakerBoxGroup.position.set(4.4, 2.0, 4.25);
+    breakerBoxGroup.rotation.y = Math.PI;
+    this.officeGroup.add(breakerBoxGroup);
+
+    // Metal box with hazard stripes
+    const bBox = new THREE.Mesh(
+      new THREE.BoxGeometry(0.85, 1.2, 0.25),
+      new THREE.MeshLambertMaterial({ color: 0x1e293b, map: this.textures.hazard })
+    );
+    breakerBoxGroup.add(bBox);
+
+    // Breaker Main Handle (Clicks up/down)
+    this.breakerLever = new THREE.Mesh(
+      new THREE.BoxGeometry(0.18, 0.35, 0.18),
+      new THREE.MeshLambertMaterial({ color: 0xef4444 })
+    );
+    this.breakerLever.position.set(0, 0.05, 0.15);
+    this.breakerLever.userData = { action: 'flipBreaker', hint: 'Врубить рубильник [КЛИК]' };
+    breakerBoxGroup.add(this.breakerLever);
+    this.interactables.push(this.breakerLever);
   }
 
   _buildLeftDoorway() {
-    const wallMat = new THREE.MeshStandardMaterial({ map: this.textures.wall, roughness: 0.8 });
+    const wallMat = new THREE.MeshLambertMaterial({ color: 0x18202c });
 
-    // Doorway frame on left wall (X = -5.0)
-    const leftDoorL = new THREE.Mesh(new THREE.BoxGeometry(0.4, 4.2, 3.5), wallMat);
-    leftDoorL.position.set(-5.0, 2.1, 1.4);
+    // Left door frame
+    const leftDoorL = new THREE.Mesh(new THREE.BoxGeometry(0.4, 4.0, 3.2), wallMat);
+    leftDoorL.position.set(-5.5, 2.0, 1.4);
     this.officeGroup.add(leftDoorL);
 
-    const leftDoorR = new THREE.Mesh(new THREE.BoxGeometry(0.4, 4.2, 3.5), wallMat);
-    leftDoorR.position.set(-5.0, 2.1, -2.4);
+    const leftDoorR = new THREE.Mesh(new THREE.BoxGeometry(0.4, 4.0, 3.2), wallMat);
+    leftDoorR.position.set(-5.5, 2.0, -2.4);
     this.officeGroup.add(leftDoorR);
 
-    const leftDoorTop = new THREE.Mesh(new THREE.BoxGeometry(0.4, 1.4, 2.6), wallMat);
-    leftDoorTop.position.set(-5.0, 3.5, -0.5);
+    const leftDoorTop = new THREE.Mesh(new THREE.BoxGeometry(0.4, 1.2, 2.6), wallMat);
+    leftDoorTop.position.set(-5.5, 3.4, -0.5);
     this.officeGroup.add(leftDoorTop);
 
-    // Left Blast Door (Sliding heavy steel gate)
-    const blastDoorGeo = new THREE.BoxGeometry(0.18, 2.9, 2.4);
-    const doorMat = new THREE.MeshStandardMaterial({
-      color: 0x475569,
-      metalness: 0.85,
-      roughness: 0.3,
-      map: this.textures.hazard
-    });
-    this.leftDoorMesh = new THREE.Mesh(blastDoorGeo, doorMat);
-    this.leftDoorMesh.position.set(-5.0, 4.4, -0.5); // Open: hidden in ceiling
+    // Left Blast Door
+    const bDoorGeo = new THREE.BoxGeometry(0.18, 2.8, 2.4);
+    const doorMat = new THREE.MeshLambertMaterial({ color: 0x475569, map: this.textures.hazard });
+    this.leftDoorMesh = new THREE.Mesh(bDoorGeo, doorMat);
+    this.leftDoorMesh.position.set(-5.5, 4.2, -0.5);
     this.officeGroup.add(this.leftDoorMesh);
 
-    // Left Button Console Panel (on wall next to door: Red Door Button & White Light Button)
-    const panelBox = new THREE.Mesh(
-      new THREE.BoxGeometry(0.12, 0.75, 0.45),
-      new THREE.MeshStandardMaterial({ color: 0x1e293b, metalness: 0.7 })
+    // Left Button Panel (Door red button, Light white button)
+    const btnBox = new THREE.Mesh(
+      new THREE.BoxGeometry(0.1, 0.75, 0.4),
+      new THREE.MeshLambertMaterial({ color: 0x0f172a })
     );
-    panelBox.position.set(-4.75, 1.6, -1.9);
-    this.officeGroup.add(panelBox);
+    btnBox.position.set(-5.25, 1.6, -1.8);
+    this.officeGroup.add(btnBox);
 
     // Red Door Button
-    const btnDoorGeo = new THREE.CylinderGeometry(0.08, 0.08, 0.08, 16);
-    btnDoorGeo.rotateZ(Math.PI / 2);
-    const btnDoorMat = new THREE.MeshStandardMaterial({ color: 0xef4444, roughness: 0.3 });
-    const leftDoorBtn = new THREE.Mesh(btnDoorGeo, btnDoorMat);
-    leftDoorBtn.position.set(-4.68, 1.8, -1.9);
-    leftDoorBtn.userData = { action: 'toggleGateLeft', hint: 'Шлюз Порт 22 [Q]' };
-    this.officeGroup.add(leftDoorBtn);
-    this.interactables.push(leftDoorBtn);
+    const btnDoor = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.08, 0.08, 0.08, 8),
+      new THREE.MeshLambertMaterial({ color: 0xef4444 })
+    );
+    btnDoor.rotation.z = Math.PI / 2;
+    btnDoor.position.set(-5.18, 1.78, -1.8);
+    btnDoor.userData = { action: 'toggleGateLeft', hint: 'Шлюз Порт 22 [Q]' };
+    this.officeGroup.add(btnDoor);
+    this.interactables.push(btnDoor);
 
-    // White/Cyan Light Button
-    const btnLightMat = new THREE.MeshStandardMaterial({ color: 0x38bdf8, roughness: 0.3 });
-    const leftLightBtn = new THREE.Mesh(btnDoorGeo, btnLightMat);
-    leftLightBtn.position.set(-4.68, 1.45, -1.9);
-    leftLightBtn.userData = { action: 'pingLeft', hint: 'Пинг Шлюза 22 [A]' };
-    this.officeGroup.add(leftLightBtn);
-    this.interactables.push(leftLightBtn);
+    // Light Button
+    const btnLight = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.08, 0.08, 0.08, 8),
+      new THREE.MeshLambertMaterial({ color: 0x38bdf8 })
+    );
+    btnLight.rotation.z = Math.PI / 2;
+    btnLight.position.set(-5.18, 1.45, -1.8);
+    btnLight.userData = { action: 'pingLeft', hint: 'Пинг Шлюза 22 [A]' };
+    this.officeGroup.add(btnLight);
+    this.interactables.push(btnLight);
   }
 
   _buildRightDoorway() {
-    const wallMat = new THREE.MeshStandardMaterial({ map: this.textures.wall, roughness: 0.8 });
+    const wallMat = new THREE.MeshLambertMaterial({ color: 0x18202c });
 
-    // Doorway frame on right wall (X = 5.0)
-    const rightDoorL = new THREE.Mesh(new THREE.BoxGeometry(0.4, 4.2, 3.5), wallMat);
-    rightDoorL.position.set(5.0, 2.1, 1.4);
+    const rightDoorL = new THREE.Mesh(new THREE.BoxGeometry(0.4, 4.0, 3.2), wallMat);
+    rightDoorL.position.set(5.5, 2.0, 1.4);
     this.officeGroup.add(rightDoorL);
 
-    const rightDoorR = new THREE.Mesh(new THREE.BoxGeometry(0.4, 4.2, 3.5), wallMat);
-    rightDoorR.position.set(5.0, 2.1, -2.4);
+    const rightDoorR = new THREE.Mesh(new THREE.BoxGeometry(0.4, 4.0, 3.2), wallMat);
+    rightDoorR.position.set(5.5, 2.0, -2.4);
     this.officeGroup.add(rightDoorR);
 
-    const rightDoorTop = new THREE.Mesh(new THREE.BoxGeometry(0.4, 1.4, 2.6), wallMat);
-    rightDoorTop.position.set(5.0, 3.5, -0.5);
+    const rightDoorTop = new THREE.Mesh(new THREE.BoxGeometry(0.4, 1.2, 2.6), wallMat);
+    rightDoorTop.position.set(5.5, 3.4, -0.5);
     this.officeGroup.add(rightDoorTop);
 
     // Right Blast Door
-    const blastDoorGeo = new THREE.BoxGeometry(0.18, 2.9, 2.4);
-    const doorMat = new THREE.MeshStandardMaterial({
-      color: 0x475569,
-      metalness: 0.85,
-      roughness: 0.3,
-      map: this.textures.hazard
-    });
-    this.rightDoorMesh = new THREE.Mesh(blastDoorGeo, doorMat);
-    this.rightDoorMesh.position.set(5.0, 4.4, -0.5); // Open in ceiling
+    const bDoorGeo = new THREE.BoxGeometry(0.18, 2.8, 2.4);
+    const doorMat = new THREE.MeshLambertMaterial({ color: 0x475569, map: this.textures.hazard });
+    this.rightDoorMesh = new THREE.Mesh(bDoorGeo, doorMat);
+    this.rightDoorMesh.position.set(5.5, 4.2, -0.5);
     this.officeGroup.add(this.rightDoorMesh);
 
-    // Right Button Console Panel
-    const panelBox = new THREE.Mesh(
-      new THREE.BoxGeometry(0.12, 0.75, 0.45),
-      new THREE.MeshStandardMaterial({ color: 0x1e293b, metalness: 0.7 })
+    // Right Button Panel
+    const btnBox = new THREE.Mesh(
+      new THREE.BoxGeometry(0.1, 0.75, 0.4),
+      new THREE.MeshLambertMaterial({ color: 0x0f172a })
     );
-    panelBox.position.set(4.75, 1.6, -1.9);
-    this.officeGroup.add(panelBox);
+    btnBox.position.set(5.25, 1.6, -1.8);
+    this.officeGroup.add(btnBox);
 
-    // Red Door Button
-    const btnDoorGeo = new THREE.CylinderGeometry(0.08, 0.08, 0.08, 16);
-    btnDoorGeo.rotateZ(Math.PI / 2);
-    const rightDoorBtn = new THREE.Mesh(
-      btnDoorGeo,
-      new THREE.MeshStandardMaterial({ color: 0xef4444, roughness: 0.3 })
+    const btnDoor = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.08, 0.08, 0.08, 8),
+      new THREE.MeshLambertMaterial({ color: 0xef4444 })
     );
-    rightDoorBtn.position.set(4.68, 1.8, -1.9);
-    rightDoorBtn.userData = { action: 'toggleGateRight', hint: 'Шлюз Порт 5432 [E]' };
-    this.officeGroup.add(rightDoorBtn);
-    this.interactables.push(rightDoorBtn);
+    btnDoor.rotation.z = Math.PI / 2;
+    btnDoor.position.set(5.18, 1.78, -1.8);
+    btnDoor.userData = { action: 'toggleGateRight', hint: 'Шлюз Порт 5432 [E]' };
+    this.officeGroup.add(btnDoor);
+    this.interactables.push(btnDoor);
 
-    // White/Cyan Light Button
-    const rightLightBtn = new THREE.Mesh(
-      btnDoorGeo,
-      new THREE.MeshStandardMaterial({ color: 0x38bdf8, roughness: 0.3 })
+    const btnLight = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.08, 0.08, 0.08, 8),
+      new THREE.MeshLambertMaterial({ color: 0x38bdf8 })
     );
-    rightLightBtn.position.set(4.68, 1.45, -1.9);
-    rightLightBtn.userData = { action: 'pingRight', hint: 'Пинг Шлюза 5432 [D]' };
-    this.officeGroup.add(rightLightBtn);
-    this.interactables.push(rightLightBtn);
+    btnLight.rotation.z = Math.PI / 2;
+    btnLight.position.set(5.18, 1.45, -1.8);
+    btnLight.userData = { action: 'pingRight', hint: 'Пинг Шлюза 5432 [D]' };
+    this.officeGroup.add(btnLight);
+    this.interactables.push(btnLight);
   }
 
   _buildDesk() {
     const deskGroup = new THREE.Group();
-    deskGroup.position.set(0, 0, -1.45);
+    deskGroup.position.set(0, 0, -1.5);
     this.officeGroup.add(deskGroup);
 
-    // Desk Table Top (heavy industrial dark wood & steel)
-    const topGeo = new THREE.BoxGeometry(4.2, 0.12, 1.6);
-    const topMat = new THREE.MeshStandardMaterial({ color: 0x1a212d, roughness: 0.6, metalness: 0.4 });
-    const deskTop = new THREE.Mesh(topGeo, topMat);
+    // Table Top
+    const deskTop = new THREE.Mesh(
+      new THREE.BoxGeometry(4.4, 0.12, 1.8),
+      new THREE.MeshLambertMaterial({ color: 0x1a222d })
+    );
     deskTop.position.set(0, 0.95, 0);
-    deskTop.receiveShadow = true;
     deskGroup.add(deskTop);
 
     // Desk Legs
-    const legGeo = new THREE.CylinderGeometry(0.05, 0.05, 0.95, 8);
-    const legMat = new THREE.MeshStandardMaterial({ color: 0x0f172a, metalness: 0.8 });
-    [
-      [-1.9, 0.47, -0.65],
-      [1.9, 0.47, -0.65],
-      [-1.9, 0.47, 0.65],
-      [1.9, 0.47, 0.65]
-    ].forEach(([x, y, z]) => {
+    const legGeo = new THREE.BoxGeometry(0.1, 0.95, 0.1);
+    const legMat = new THREE.MeshLambertMaterial({ color: 0x0f172a });
+    [[-2.0, 0.47, -0.75], [2.0, 0.47, -0.75], [-2.0, 0.47, 0.75], [2.0, 0.47, 0.75]].forEach(([x, y, z]) => {
       const leg = new THREE.Mesh(legGeo, legMat);
       leg.position.set(x, y, z);
       deskGroup.add(leg);
     });
 
-    // A. CRT Terminal Monitor (Center)
-    const monitorGroup = new THREE.Group();
-    monitorGroup.position.set(0, 1.01, -0.15);
-    deskGroup.add(monitorGroup);
+    // 1. CRT IDE Monitor (Center)
+    const monitorCase = new THREE.Mesh(
+      new THREE.BoxGeometry(1.25, 0.9, 0.65),
+      new THREE.MeshLambertMaterial({ color: 0x1e293b })
+    );
+    monitorCase.position.set(0, 1.5, -0.15);
+    deskGroup.add(monitorCase);
 
-    // Monitor Case
-    const caseGeo = new THREE.BoxGeometry(1.2, 0.85, 0.65);
-    const caseMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.5 });
-    const monitorCase = new THREE.Mesh(caseGeo, caseMat);
-    monitorCase.position.set(0, 0.52, 0);
-    monitorGroup.add(monitorCase);
-
-    // Monitor Screen (Curved CRT Front)
-    const screenGeo = new THREE.PlaneGeometry(1.0, 0.68);
+    const screenGeo = new THREE.PlaneGeometry(1.05, 0.72);
     const screenMat = new THREE.MeshBasicMaterial({ map: this.crtTexture });
     this.crtScreenMesh = new THREE.Mesh(screenGeo, screenMat);
-    this.crtScreenMesh.position.set(0, 0.52, 0.33);
-    this.crtScreenMesh.userData = { action: 'writePatch', hint: 'Пилить патч [ПРОБЕЛ]' };
-    monitorGroup.add(this.crtScreenMesh);
+    this.crtScreenMesh.position.set(0, 1.5, 0.18);
+    this.crtScreenMesh.userData = { action: 'writePatch', hint: 'Пилить патч [ПРОБЕЛ/КЛИК]' };
+    deskGroup.add(this.crtScreenMesh);
     this.interactables.push(this.crtScreenMesh);
 
     // Keyboard
-    const kbGeo = new THREE.BoxGeometry(0.85, 0.04, 0.32);
-    const kbMat = new THREE.MeshStandardMaterial({ color: 0x090d16, roughness: 0.6 });
-    const kb = new THREE.Mesh(kbGeo, kbMat);
-    kb.position.set(0, 1.03, 0.38);
+    const kb = new THREE.Mesh(
+      new THREE.BoxGeometry(0.85, 0.04, 0.32),
+      new THREE.MeshLambertMaterial({ color: 0x090d16 })
+    );
+    kb.position.set(0, 1.03, 0.4);
     kb.userData = { action: 'writePatch', hint: 'Печатать код [ПРОБЕЛ]' };
     deskGroup.add(kb);
     this.interactables.push(kb);
 
-    // B. Retro Desk Fan (Rotating Blades on Left side of desk)
+    // 2. Desk Fan (Left)
     const fanGroup = new THREE.Group();
-    fanGroup.position.set(-1.45, 1.01, -0.1);
+    fanGroup.position.set(-1.6, 1.01, -0.15);
     deskGroup.add(fanGroup);
 
-    // Fan Base & Stand
-    const fanBase = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.18, 0.22, 0.06, 16),
-      new THREE.MeshStandardMaterial({ color: 0x0f172a, metalness: 0.8 })
-    );
+    const fanBase = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.22, 0.06, 12), new THREE.MeshLambertMaterial({ color: 0x0f172a }));
     fanBase.position.y = 0.03;
     fanGroup.add(fanBase);
 
-    const fanPole = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.025, 0.025, 0.35, 8),
-      new THREE.MeshStandardMaterial({ color: 0x334155, metalness: 0.9 })
-    );
-    fanPole.position.y = 0.2;
-    fanGroup.add(fanPole);
-
-    // Fan Cage & Center Motor
-    const fanMotor = new THREE.Mesh(
-      new THREE.SphereGeometry(0.09, 12, 12),
-      new THREE.MeshStandardMaterial({ color: 0x1e293b })
-    );
-    fanMotor.position.y = 0.38;
-    fanGroup.add(fanMotor);
-
-    // Fan Blades (Rotated in animation loop)
     this.fanBlades = new THREE.Group();
     this.fanBlades.position.set(0, 0.38, 0.07);
     for (let b = 0; b < 3; b++) {
-      const blade = new THREE.Mesh(
-        new THREE.BoxGeometry(0.08, 0.32, 0.015),
-        new THREE.MeshStandardMaterial({ color: 0x64748b, metalness: 0.7 })
-      );
+      const blade = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.32, 0.015), new THREE.MeshLambertMaterial({ color: 0x64748b }));
       blade.rotation.z = (b * Math.PI * 2) / 3;
-      blade.position.y = 0.08;
       this.fanBlades.add(blade);
     }
     fanGroup.add(this.fanBlades);
 
-    // C. Kernel DIP Switches Metal Box (Right side of desk)
-    const dipBoxGroup = new THREE.Group();
-    dipBoxGroup.position.set(1.3, 1.01, 0.0);
-    deskGroup.add(dipBoxGroup);
+    // 3. TOXIC GAS VALVE WHEEL (Left side of desk, mouse-rotatable!)
+    const valveGroup = new THREE.Group();
+    valveGroup.position.set(-1.65, 1.05, 0.45);
+    deskGroup.add(valveGroup);
 
-    const dipBox = new THREE.Mesh(
-      new THREE.BoxGeometry(0.9, 0.12, 0.55),
-      new THREE.MeshStandardMaterial({ color: 0x1e293b, metalness: 0.75 })
+    // Pipe
+    const pipe = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.06, 0.06, 0.35, 8),
+      new THREE.MeshLambertMaterial({ color: 0x475569 })
     );
-    dipBox.position.y = 0.06;
-    dipBoxGroup.add(dipBox);
+    pipe.position.y = 0.17;
+    valveGroup.add(pipe);
 
-    // 4 Toggle Levers + 4 Target LEDs
-    this.dipLevers = [];
-    this.dipLeds = [];
-    for (let i = 0; i < 4; i++) {
-      const lx = -0.32 + i * 0.21;
+    // Red Valve Handwheel (Torus + Crossbars)
+    this.gasValveWheel = new THREE.Group();
+    this.gasValveWheel.position.y = 0.35;
+    const rim = new THREE.Mesh(
+      new THREE.TorusGeometry(0.18, 0.03, 8, 16),
+      new THREE.MeshLambertMaterial({ color: 0xdc2626 }) // Red emergency wheel
+    );
+    rim.rotation.x = Math.PI / 2;
+    this.gasValveWheel.add(rim);
 
-      // Lever Base
-      const lBase = new THREE.Mesh(
-        new THREE.CylinderGeometry(0.035, 0.045, 0.04, 8),
-        new THREE.MeshStandardMaterial({ color: 0x0f172a })
+    for (let s = 0; s < 4; s++) {
+      const spoke = new THREE.Mesh(
+        new THREE.BoxGeometry(0.03, 0.03, 0.36),
+        new THREE.MeshLambertMaterial({ color: 0xf87171 })
       );
-      lBase.position.set(lx, 0.14, 0.06);
-      dipBoxGroup.add(lBase);
-
-      // Lever Handle (Pivots forward/backward)
-      const leverHandle = new THREE.Mesh(
-        new THREE.CylinderGeometry(0.015, 0.02, 0.14, 8),
-        new THREE.MeshStandardMaterial({ color: 0x22c55e, metalness: 0.9 })
-      );
-      leverHandle.position.set(lx, 0.21, 0.06);
-      leverHandle.userData = { action: `toggleDip_${i}`, hint: `Тумблер Ядра SW-${i + 1} [${i + 1}]` };
-      dipBoxGroup.add(leverHandle);
-      this.dipLevers.push(leverHandle);
-      this.interactables.push(leverHandle);
-
-      // Target LED on box
-      const led = new THREE.Mesh(
-        new THREE.SphereGeometry(0.025, 8, 8),
-        new THREE.MeshBasicMaterial({ color: 0x475569 })
-      );
-      led.position.set(lx, 0.14, -0.14);
-      dipBoxGroup.add(led);
-      this.dipLeds.push(led);
+      spoke.rotation.y = (s * Math.PI) / 4;
+      this.gasValveWheel.add(spoke);
     }
 
-    // D. Pukanometer Analog Dial Gauge
+    this.gasValveWheel.userData = { action: 'spinGasValve', hint: 'Крутить вентиль газа по кругу!' };
+    valveGroup.add(this.gasValveWheel);
+    this.interactables.push(this.gasValveWheel);
+
+    // 4. SYNTHETIC 3D BIOPRINTER (Carrot generator on right side!)
+    const printGroup = new THREE.Group();
+    printGroup.position.set(1.5, 1.01, -0.2);
+    deskGroup.add(printGroup);
+
+    this.printerMesh = new THREE.Mesh(
+      new THREE.BoxGeometry(0.65, 0.45, 0.65),
+      new THREE.MeshLambertMaterial({ color: 0x1e293b, map: this.textures.hazard })
+    );
+    this.printerMesh.position.y = 0.23;
+    this.printerMesh.userData = { action: 'printCarrot', hint: 'Печать морковки для Трояна [КЛИК]' };
+    printGroup.add(this.printerMesh);
+    this.interactables.push(this.printerMesh);
+
+    // Hologram / Printed Carrot inside printer chamber
+    this.carrotHologram = new THREE.Group();
+    this.carrotHologram.position.set(0, 0.28, 0);
+    const carrotBody = new THREE.Mesh(
+      new THREE.ConeGeometry(0.08, 0.26, 6),
+      new THREE.MeshLambertMaterial({ color: 0xf97316 })
+    );
+    carrotBody.rotation.x = Math.PI;
+    this.carrotHologram.add(carrotBody);
+
+    const carrotGreens = new THREE.Mesh(
+      new THREE.ConeGeometry(0.05, 0.12, 4),
+      new THREE.MeshLambertMaterial({ color: 0x22c55e })
+    );
+    carrotGreens.position.y = 0.16;
+    this.carrotHologram.add(carrotGreens);
+    this.carrotHologram.userData = { action: 'printCarrot', hint: 'Печать морковки для Трояна' };
+    printGroup.add(this.carrotHologram);
+    this.interactables.push(this.carrotHologram);
+
+    // 5. Pukanometer Dial Gauge
     const gaugeGroup = new THREE.Group();
-    gaugeGroup.position.set(0.72, 1.01, 0.32);
+    gaugeGroup.position.set(0.75, 1.01, 0.4);
     deskGroup.add(gaugeGroup);
 
     const gaugeBody = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.16, 0.18, 0.06, 16),
-      new THREE.MeshStandardMaterial({ color: 0x0f172a, metalness: 0.8 })
+      new THREE.CylinderGeometry(0.16, 0.18, 0.06, 12),
+      new THREE.MeshLambertMaterial({ color: 0x0f172a })
     );
     gaugeBody.position.y = 0.03;
     gaugeGroup.add(gaugeBody);
 
-    // Gauge Face (Canvas with gradient green->red dial)
-    const dialCanvas = document.createElement('canvas');
-    dialCanvas.width = 128;
-    dialCanvas.height = 128;
-    const dctx = dialCanvas.getContext('2d');
-    dctx.fillStyle = '#111';
-    dctx.fillRect(0, 0, 128, 128);
-    dctx.beginPath();
-    dctx.arc(64, 64, 52, Math.PI * 0.75, Math.PI * 2.25);
-    dctx.lineWidth = 10;
-    dctx.strokeStyle = '#ef4444';
-    dctx.stroke();
-    dctx.fillStyle = '#fff';
-    dctx.font = 'bold 12px monospace';
-    dctx.fillText('°C PUKAN', 38, 72);
-    const dialTex = new THREE.CanvasTexture(dialCanvas);
-
-    const gaugeFace = new THREE.Mesh(
-      new THREE.CircleGeometry(0.14, 16),
-      new THREE.MeshBasicMaterial({ map: dialTex })
-    );
-    gaugeFace.rotation.x = -Math.PI / 2;
-    gaugeFace.position.y = 0.065;
-    gaugeGroup.add(gaugeFace);
-
-    // Needle
     this.pukanDialNeedle = new THREE.Mesh(
-      new THREE.BoxGeometry(0.015, 0.11, 0.01),
+      new THREE.BoxGeometry(0.015, 0.12, 0.01),
       new THREE.MeshBasicMaterial({ color: 0xf59e0b })
     );
-    this.pukanDialNeedle.position.set(0, 0.075, 0);
+    this.pukanDialNeedle.position.set(0, 0.07, 0);
     this.pukanDialNeedle.rotation.x = -Math.PI / 2;
     gaugeGroup.add(this.pukanDialNeedle);
-
-    // Coffee Mug
-    const mug = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.06, 0.055, 0.12, 12),
-      new THREE.MeshStandardMaterial({ color: 0x3b82f6, roughness: 0.3 })
-    );
-    mug.position.set(-0.75, 1.07, 0.35);
-    deskGroup.add(mug);
-  }
-
-  _buildHallways() {
-    const wallMat = new THREE.MeshStandardMaterial({ map: this.textures.wall, roughness: 0.85 });
-
-    // Left Corridor (Port 22 SSH) leading past left door
-    const leftHallFloor = new THREE.Mesh(
-      new THREE.PlaneGeometry(8, 12),
-      new THREE.MeshStandardMaterial({ map: this.textures.floor, roughness: 0.8 })
-    );
-    leftHallFloor.rotation.x = -Math.PI / 2;
-    leftHallFloor.position.set(-9.0, 0, -0.5);
-    this.scene.add(leftHallFloor);
-
-    const leftHallWall = new THREE.Mesh(new THREE.BoxGeometry(8, 4.2, 0.3), wallMat);
-    leftHallWall.position.set(-9.0, 2.1, -6.5);
-    this.scene.add(leftHallWall);
-
-    // Right Corridor (Port 5432 SQL) leading past right door
-    const rightHallFloor = new THREE.Mesh(
-      new THREE.PlaneGeometry(8, 12),
-      new THREE.MeshStandardMaterial({ map: this.textures.floor, roughness: 0.8 })
-    );
-    rightHallFloor.rotation.x = -Math.PI / 2;
-    rightHallFloor.position.set(9.0, 0, -0.5);
-    this.scene.add(rightHallFloor);
-
-    const rightHallWall = new THREE.Mesh(new THREE.BoxGeometry(8, 4.2, 0.3), wallMat);
-    rightHallWall.position.set(9.0, 2.1, -6.5);
-    this.scene.add(rightHallWall);
-
-    // Central Server Room (Behind front wall)
-    const serverHallFloor = new THREE.Mesh(
-      new THREE.PlaneGeometry(14, 24),
-      new THREE.MeshStandardMaterial({ map: this.textures.floor, roughness: 0.8 })
-    );
-    serverHallFloor.rotation.x = -Math.PI / 2;
-    serverHallFloor.position.set(0, 0, -15);
-    this.scene.add(serverHallFloor);
-
-    // Server Racks in Central Hall
-    const rackGeo = new THREE.BoxGeometry(1.2, 3.2, 1.4);
-    const rackMat = new THREE.MeshStandardMaterial({ color: 0x090d16, roughness: 0.7, metalness: 0.5 });
-    for (let z = -6; z >= -22; z -= 3.5) {
-      const rackL = new THREE.Mesh(rackGeo, rackMat);
-      rackL.position.set(-3.2, 1.6, z);
-      this.scene.add(rackL);
-
-      const rackR = new THREE.Mesh(rackGeo, rackMat);
-      rackR.position.set(3.2, 1.6, z);
-      this.scene.add(rackR);
-    }
   }
 
   // =========================================================================
-  // 3D Procedural Animatronic Entities (Bonnie, Chica, Foxy, Skynet-Freddy)
+  // THE 4 REAL MONSTERS: Distortion Giant, Bug-Tadpole, Trojan T-Pose, Burgundy
   // =========================================================================
-  _buildAnimatronics() {
-    // 1. BONNIE THE BRUTEFORCER (Purple metallic bunny with glowing red eyes)
-    this.entities.bonnie = this._createBonnieMesh();
-    this.scene.add(this.entities.bonnie);
+  _buildMonsters() {
+    // 1. DISTORTION GIANT («Исказитель / Архитектор Хуйло»)
+    // Tall disproportionate dark shadowy mesh with glowing piercing eyes
+    this.monsters3D.distortion = new THREE.Group();
+    const distMat = new THREE.MeshBasicMaterial({ color: 0x05070a });
+    const eyeGlow = new THREE.MeshBasicMaterial({ color: 0x38bdf8 }); // piercing cyan-white glare
 
-    // 2. CHICA THE SQL-INJECTOR (Yellow cyber-bird with orange cyber-beak)
-    this.entities.chica = this._createChicaMesh();
-    this.scene.add(this.entities.chica);
+    const dBody = new THREE.Mesh(new THREE.BoxGeometry(1.2, 3.2, 0.6), distMat);
+    dBody.position.y = 1.9;
+    this.monsters3D.distortion.add(dBody);
 
-    // 3. FOXY THE CRYPTOLOCKER (Crimson cyber-fox with pirate hook & eyepatch)
-    this.entities.foxy = this._createFoxyMesh();
-    this.scene.add(this.entities.foxy);
+    const dHead = new THREE.Mesh(new THREE.BoxGeometry(0.85, 1.1, 0.8), distMat);
+    dHead.position.y = 3.9;
+    this.monsters3D.distortion.add(dHead);
 
-    // 4. SKYNET-FREDDY (Dark bronze AGI bear with top hat & blue optics)
-    this.entities.freddy = this._createFreddyMesh();
-    this.scene.add(this.entities.freddy);
+    // Piercing Eyes
+    const eye1 = new THREE.Mesh(new THREE.SphereGeometry(0.12, 8, 8), eyeGlow);
+    eye1.position.set(-0.25, 4.0, 0.42);
+    this.monsters3D.distortion.add(eye1);
 
-    // Initial positions away in darkness
-    this._updateAnimatronicPositions();
-  }
+    const eye2 = new THREE.Mesh(new THREE.SphereGeometry(0.12, 8, 8), eyeGlow);
+    eye2.position.set(0.25, 4.0, 0.42);
+    this.monsters3D.distortion.add(eye2);
 
-  _createBonnieMesh() {
-    const group = new THREE.Group();
-    const chassisMat = new THREE.MeshStandardMaterial({
-      color: 0x4338ca,
-      metalness: 0.8,
-      roughness: 0.35
+    this.monsters3D.distortion.visible = false;
+    this.scene.add(this.monsters3D.distortion);
+
+    // 2. BUG-TADPOLE («Багогрыз-Головастик»)
+    // Disgusting small hybrid of rat, tadpole and inkblot that scuttles on desk!
+    this.monsters3D.tadpole = new THREE.Group();
+    const tadMat = new THREE.MeshLambertMaterial({ color: 0x1e1b4b }); // dark purple-black slime
+    const tEyeMat = new THREE.MeshBasicMaterial({ color: 0xf43f5e });
+
+    const tBody = new THREE.Mesh(new THREE.SphereGeometry(0.16, 8, 8), tadMat);
+    tBody.scale.set(1.4, 0.9, 1.0);
+    this.monsters3D.tadpole.add(tBody);
+
+    // Twitching tail
+    const tTail = new THREE.Mesh(new THREE.ConeGeometry(0.08, 0.4, 5), tadMat);
+    tTail.rotation.x = Math.PI / 2;
+    tTail.position.set(0, 0, -0.25);
+    this.monsters3D.tadpole.add(tTail);
+
+    const tEyeL = new THREE.Mesh(new THREE.SphereGeometry(0.045, 6, 6), tEyeMat);
+    tEyeL.position.set(-0.08, 0.08, 0.14);
+    this.monsters3D.tadpole.add(tEyeL);
+
+    const tEyeR = new THREE.Mesh(new THREE.SphereGeometry(0.045, 6, 6), tEyeMat);
+    tEyeR.position.set(0.08, 0.08, 0.14);
+    this.monsters3D.tadpole.add(tEyeR);
+
+    this.monsters3D.tadpole.position.set(0, 1.08, -1.2);
+    this.monsters3D.tadpole.userData = { action: 'hitTadpole', hint: 'ПРИБИТЬ БАГОГРЫЗА [КЛИК!]' };
+    this.monsters3D.tadpole.visible = false;
+    this.scene.add(this.monsters3D.tadpole);
+    this.interactables.push(this.monsters3D.tadpole);
+
+    // 3. TROJAN HORSE.EXE («Троянский Конь в T-Pose»)
+    // Hilarious yet scary wooden horse in completely rigid motionless T-pose!
+    this.monsters3D.trojan = new THREE.Group();
+    const woodMat = new THREE.MeshLambertMaterial({ color: 0x78350f }); // rustic wood planks
+    const wheelMat = new THREE.MeshLambertMaterial({ color: 0x1c1917 });
+
+    // Horse Body
+    const hBody = new THREE.Mesh(new THREE.BoxGeometry(1.4, 1.2, 2.4), woodMat);
+    hBody.position.y = 1.6;
+    this.monsters3D.trojan.add(hBody);
+
+    // Long Neck & Wooden Head
+    const hNeck = new THREE.Mesh(new THREE.BoxGeometry(0.55, 1.4, 0.7), woodMat);
+    hNeck.position.set(0, 2.6, 0.95);
+    hNeck.rotation.x = -Math.PI * 0.15;
+    this.monsters3D.trojan.add(hNeck);
+
+    const hHead = new THREE.Mesh(new THREE.BoxGeometry(0.65, 0.65, 1.1), woodMat);
+    hHead.position.set(0, 3.2, 1.45);
+    this.monsters3D.trojan.add(hHead);
+
+    // Glowing creepy horse eye
+    const hEye = new THREE.Mesh(new THREE.SphereGeometry(0.09, 6, 6), new THREE.MeshBasicMaterial({ color: 0xef4444 }));
+    hEye.position.set(0, 3.3, 1.7);
+    this.monsters3D.trojan.add(hEye);
+
+    // Pure T-Pose Rigid Wooden Arms (sticking straight out!)
+    const armL = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.25, 0.25), woodMat);
+    armL.position.set(-1.4, 2.0, 0.4);
+    this.monsters3D.trojan.add(armL);
+
+    const armR = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.25, 0.25), woodMat);
+    armR.position.set(1.4, 2.0, 0.4);
+    this.monsters3D.trojan.add(armR);
+
+    // 4 Wheels (non-rotating, just sliding!)
+    [[-0.75, 0.4, 0.8], [0.75, 0.4, 0.8], [-0.75, 0.4, -0.8], [0.75, 0.4, -0.8]].forEach(([x, y, z]) => {
+      const w = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.35, 0.12, 10), wheelMat);
+      w.rotation.z = Math.PI / 2;
+      w.position.set(x, y, z);
+      this.monsters3D.trojan.add(w);
     });
-    const jointMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, metalness: 0.9 });
-    const eyeMat = new THREE.MeshBasicMaterial({ color: 0xef4444 });
 
-    // Torso
-    const torso = new THREE.Mesh(new THREE.BoxGeometry(0.85, 1.2, 0.5), chassisMat);
-    torso.position.y = 1.35;
-    group.add(torso);
+    this.monsters3D.trojan.visible = false;
+    this.scene.add(this.monsters3D.trojan);
 
-    // Head
-    const head = new THREE.Mesh(new THREE.BoxGeometry(0.65, 0.65, 0.6), chassisMat);
-    head.position.y = 2.25;
-    group.add(head);
+    // 4. BURGUNDY VENT STALKER («Бордовый Душегуб»)
+    // Fast, sharp teeth, reptilian body that sneaks through vents
+    this.monsters3D.burgundy = new THREE.Group();
+    const burgMat = new THREE.MeshLambertMaterial({ color: 0x881337 }); // злобно-бордовый
+    const bEye = new THREE.MeshBasicMaterial({ color: 0xfacc15 });
 
-    // Snout & Jaw
-    const snout = new THREE.Mesh(new THREE.BoxGeometry(0.45, 0.22, 0.3), chassisMat);
-    snout.position.set(0, 2.12, 0.36);
-    group.add(snout);
+    const bTorso = new THREE.Mesh(new THREE.BoxGeometry(0.9, 1.2, 0.6), burgMat);
+    bTorso.position.y = 1.4;
+    this.monsters3D.burgundy.add(bTorso);
 
-    // Glowing Red Eyes
-    const eyeL = new THREE.Mesh(new THREE.SphereGeometry(0.08, 12, 12), eyeMat);
-    eyeL.position.set(-0.18, 2.32, 0.32);
-    group.add(eyeL);
+    const bHead = new THREE.Mesh(new THREE.ConeGeometry(0.48, 0.9, 5), burgMat);
+    bHead.rotation.x = Math.PI / 2;
+    bHead.position.set(0, 2.2, 0.2);
+    this.monsters3D.burgundy.add(bHead);
 
-    const eyeR = new THREE.Mesh(new THREE.SphereGeometry(0.08, 12, 12), eyeMat);
-    eyeR.position.set(0.18, 2.32, 0.32);
-    group.add(eyeR);
+    const bEye1 = new THREE.Mesh(new THREE.SphereGeometry(0.08, 6, 6), bEye);
+    bEye1.position.set(-0.2, 2.3, 0.45);
+    this.monsters3D.burgundy.add(bEye1);
 
-    // Bunny Ears (2 jointed ears)
-    for (let s of [-0.22, 0.22]) {
-      const ear1 = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.35, 0.08), chassisMat);
-      ear1.position.set(s, 2.75, 0);
-      group.add(ear1);
+    const bEye2 = new THREE.Mesh(new THREE.SphereGeometry(0.08, 6, 6), bEye);
+    bEye2.position.set(0.2, 2.3, 0.45);
+    this.monsters3D.burgundy.add(bEye2);
 
-      const ear2 = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.42, 0.08), chassisMat);
-      ear2.position.set(s, 3.12, 0);
-      group.add(ear2);
-    }
-
-    // Legs
-    for (let s of [-0.25, 0.25]) {
-      const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 0.8, 8), jointMat);
-      leg.position.set(s, 0.45, 0);
-      group.add(leg);
-    }
-
-    group.userData = { id: 'bonnie', name: 'Бонни-Брутфорсер' };
-    return group;
-  }
-
-  _createChicaMesh() {
-    const group = new THREE.Group();
-    const chassisMat = new THREE.MeshStandardMaterial({
-      color: 0xeab308,
-      metalness: 0.75,
-      roughness: 0.35
-    });
-    const beakMat = new THREE.MeshStandardMaterial({ color: 0xf97316, metalness: 0.6 });
-    const eyeMat = new THREE.MeshBasicMaterial({ color: 0xa855f7 });
-
-    // Torso with Bib ("LET'S CRASH")
-    const torso = new THREE.Mesh(new THREE.CylinderGeometry(0.48, 0.42, 1.25, 12), chassisMat);
-    torso.position.y = 1.35;
-    group.add(torso);
-
-    // Head
-    const head = new THREE.Mesh(new THREE.SphereGeometry(0.4, 16, 16), chassisMat);
-    head.position.y = 2.25;
-    group.add(head);
-
-    // Cyber Beak
-    const beak = new THREE.Mesh(new THREE.ConeGeometry(0.24, 0.45, 4), beakMat);
-    beak.rotation.x = Math.PI / 2;
-    beak.position.set(0, 2.15, 0.42);
-    group.add(beak);
-
-    // Glowing Eyes
-    const eyeL = new THREE.Mesh(new THREE.SphereGeometry(0.08, 12, 12), eyeMat);
-    eyeL.position.set(-0.18, 2.32, 0.3);
-    group.add(eyeL);
-
-    const eyeR = new THREE.Mesh(new THREE.SphereGeometry(0.08, 12, 12), eyeMat);
-    eyeR.position.set(0.18, 2.32, 0.3);
-    group.add(eyeR);
-
-    // Feather Tufts
-    const tuft = new THREE.Mesh(new THREE.ConeGeometry(0.1, 0.35, 4), chassisMat);
-    tuft.position.set(0, 2.75, 0);
-    group.add(tuft);
-
-    group.userData = { id: 'chica', name: 'Чика-Инъекторша' };
-    return group;
-  }
-
-  _createFoxyMesh() {
-    const group = new THREE.Group();
-    const chassisMat = new THREE.MeshStandardMaterial({
-      color: 0xb91c1c,
-      metalness: 0.85,
-      roughness: 0.3
-    });
-    const chromeMat = new THREE.MeshStandardMaterial({ color: 0x94a3b8, metalness: 0.95 });
-    const eyeMat = new THREE.MeshBasicMaterial({ color: 0xfacc15 });
-
-    // Torso (Lean, mechanical exposed ribs)
-    const torso = new THREE.Mesh(new THREE.BoxGeometry(0.72, 1.15, 0.42), chassisMat);
-    torso.position.y = 1.35;
-    group.add(torso);
-
-    // Head
-    const head = new THREE.Mesh(new THREE.ConeGeometry(0.42, 0.72, 5), chassisMat);
-    head.rotation.x = Math.PI / 2;
-    head.position.set(0, 2.25, 0.1);
-    group.add(head);
-
-    // Glowing Eye + Eyepatch Sensor
-    const eyeR = new THREE.Mesh(new THREE.SphereGeometry(0.08, 12, 12), eyeMat);
-    eyeR.position.set(0.18, 2.25, 0.34);
-    group.add(eyeR);
-
-    const eyepatch = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.09, 0.09, 0.04, 12),
-      new THREE.MeshStandardMaterial({ color: 0x090d16 })
-    );
-    eyepatch.rotation.x = Math.PI / 2;
-    eyepatch.position.set(-0.18, 2.25, 0.34);
-    group.add(eyepatch);
-
-    // Fox Ears
-    for (let s of [-0.28, 0.28]) {
-      const ear = new THREE.Mesh(new THREE.ConeGeometry(0.12, 0.38, 4), chassisMat);
-      ear.position.set(s, 2.75, -0.05);
-      group.add(ear);
-    }
-
-    // Pirate Hook on Right Hand
-    const hook = new THREE.Mesh(new THREE.TorusGeometry(0.12, 0.035, 8, 16, Math.PI * 1.3), chromeMat);
-    hook.position.set(0.55, 1.1, 0.3);
-    group.add(hook);
-
-    group.userData = { id: 'foxy', name: 'Фокси-Криптолокер' };
-    return group;
-  }
-
-  _createFreddyMesh() {
-    const group = new THREE.Group();
-    const chassisMat = new THREE.MeshStandardMaterial({
-      color: 0x451a03,
-      metalness: 0.8,
-      roughness: 0.4
-    });
-    const hatMat = new THREE.MeshStandardMaterial({ color: 0x090d16, roughness: 0.5 });
-    const eyeMat = new THREE.MeshBasicMaterial({ color: 0x38bdf8 });
-
-    // Heavy Torso
-    const torso = new THREE.Mesh(new THREE.BoxGeometry(1.0, 1.3, 0.6), chassisMat);
-    torso.position.y = 1.35;
-    group.add(torso);
-
-    // Head
-    const head = new THREE.Mesh(new THREE.BoxGeometry(0.75, 0.75, 0.65), chassisMat);
-    head.position.y = 2.25;
-    group.add(head);
-
-    // Snout
-    const snout = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.28, 0.35), chassisMat);
-    snout.position.set(0, 2.1, 0.4);
-    group.add(snout);
-
-    // Glowing Blue Optics
-    const eyeL = new THREE.Mesh(new THREE.SphereGeometry(0.08, 12, 12), eyeMat);
-    eyeL.position.set(-0.2, 2.35, 0.35);
-    group.add(eyeL);
-
-    const eyeR = new THREE.Mesh(new THREE.SphereGeometry(0.08, 12, 12), eyeMat);
-    eyeR.position.set(0.2, 2.35, 0.35);
-    group.add(eyeR);
-
-    // Top Hat
-    const hatBase = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.3, 0.04, 16), hatMat);
-    hatBase.position.set(0, 2.65, 0);
-    group.add(hatBase);
-
-    const hatTop = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.22, 0.35, 16), hatMat);
-    hatTop.position.set(0, 2.82, 0);
-    group.add(hatTop);
-
-    // Bear Ears
-    for (let s of [-0.38, 0.38]) {
-      const ear = new THREE.Mesh(new THREE.SphereGeometry(0.12, 10, 10), chassisMat);
-      ear.position.set(s, 2.65, 0);
-      group.add(ear);
-    }
-
-    group.userData = { id: 'freddy', name: 'Скайнет-Фредди' };
-    return group;
+    this.monsters3D.burgundy.visible = false;
+    this.scene.add(this.monsters3D.burgundy);
   }
 
   _setupLighting() {
-    // Ambient office light
-    const ambient = new THREE.AmbientLight(0x0f172a, 0.65);
+    // Ambient light
+    const ambient = new THREE.AmbientLight(0x0a101d, 0.7);
     this.scene.add(ambient);
 
-    // Overhead fluorescent tube (PointLight)
-    this.officeLight = new THREE.PointLight(0xe0f2fe, 1.4, 12, 1.8);
-    this.officeLight.position.set(0, 3.8, 0);
-    this.officeLight.castShadow = true;
+    // Overhead Office Fluorescent Light
+    this.officeLight = new THREE.PointLight(0xe2e8f0, 1.5, 14, 1.8);
+    this.officeLight.position.set(0, 3.6, 0);
     this.scene.add(this.officeLight);
 
-    // CRT Screen glow
-    const crtGlow = new THREE.PointLight(0x22c55e, 0.9, 3.5, 2);
-    crtGlow.position.set(0, 1.6, -1.2);
-    this.scene.add(crtGlow);
+    // Night sky cool blue rim light from back window
+    this.nightSkyLight = new THREE.DirectionalLight(0x1e3a8a, 0.65);
+    this.nightSkyLight.position.set(0, 3.0, 7.0);
+    this.nightSkyLight.target.position.set(0, 1.5, 0);
+    this.scene.add(this.nightSkyLight);
+    this.scene.add(this.nightSkyLight.target);
 
-    // Left Hallway Spotlight (enabled during ping or light)
-    this.leftSpotlight = new THREE.SpotLight(0xffffff, 0, 16, Math.PI / 4, 0.45);
-    this.leftSpotlight.position.set(-4.8, 2.8, -0.5);
+    // Spotlights for doors
+    this.leftSpotlight = new THREE.SpotLight(0xffffff, 0, 15, Math.PI / 4, 0.4);
+    this.leftSpotlight.position.set(-5.2, 2.6, -0.5);
     this.leftSpotlight.target.position.set(-10, 1.2, -0.5);
     this.scene.add(this.leftSpotlight);
     this.scene.add(this.leftSpotlight.target);
 
-    // Right Hallway Spotlight
-    this.rightSpotlight = new THREE.SpotLight(0xffffff, 0, 16, Math.PI / 4, 0.45);
-    this.rightSpotlight.position.set(4.8, 2.8, -0.5);
+    this.rightSpotlight = new THREE.SpotLight(0xffffff, 0, 15, Math.PI / 4, 0.4);
+    this.rightSpotlight.position.set(5.2, 2.6, -0.5);
     this.rightSpotlight.target.position.set(10, 1.2, -0.5);
     this.scene.add(this.rightSpotlight);
     this.scene.add(this.rightSpotlight.target);
 
-    // Red Emergency Strobe (Flashes when pukan boiling or alarm)
-    this.alarmStrobe = new THREE.PointLight(0xef4444, 0, 18, 1.5);
-    this.alarmStrobe.position.set(0, 3.5, -0.5);
+    // Emergency Red Strobe
+    this.alarmStrobe = new THREE.PointLight(0xef4444, 0, 16, 1.5);
+    this.alarmStrobe.position.set(0, 3.4, 0);
     this.scene.add(this.alarmStrobe);
   }
 
+  // =========================================================================
+  // 360° MOUSE LOOK & DRAGGABLE CONTROLS
+  // =========================================================================
   _setupListeners() {
-    // Mouse movement inside 3D viewport for FNaF-style camera panning & hover tooltips
-    window.addEventListener('mousemove', (e) => {
-      this.mouseX = e.clientX / window.innerWidth;
-      this.mouseY = e.clientY / window.innerHeight;
+    // 360° Mouse Look
+    window.addEventListener('mousedown', (e) => {
+      this.isDragging = true;
+      this.prevMouseX = e.clientX;
+      this.prevMouseY = e.clientY;
+    });
 
-      // Update raycaster mouse vector
+    window.addEventListener('mouseup', () => {
+      this.isDragging = false;
+      this.isDraggingValve = false;
+    });
+
+    window.addEventListener('mousemove', (e) => {
       const rect = this.container.getBoundingClientRect();
       this.mouseVec.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
       this.mouseVec.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
 
-      // Check hover over 3D interactable items
+      // Mouse drag look (or hovering towards edges)
+      if (this.isDragging && !window.prodGame?.cctvOpen) {
+        const dx = e.clientX - this.prevMouseX;
+        const dy = e.clientY - this.prevMouseY;
+        this.prevMouseX = e.clientX;
+        this.prevMouseY = e.clientY;
+
+        // Smooth full 360° yaw rotation!
+        this.targetYaw -= dx * 0.0055;
+        this.targetPitch = Math.max(-0.65, Math.min(0.65, this.targetPitch - dy * 0.0045));
+      } else if (!window.prodGame?.cctvOpen) {
+        // Subtle edge glance
+        const edgeX = (e.clientX / window.innerWidth) - 0.5;
+        if (Math.abs(edgeX) > 0.35) {
+          this.targetYaw -= edgeX * 0.015;
+        }
+      }
+
+      // Check gas valve circular dragging
+      if (this.isDraggingValve && window.prodGame) {
+        const angle = Math.atan2(e.clientY - window.innerHeight / 2, e.clientX - window.innerWidth / 2);
+        const delta = angle - this.valveLastAngle;
+        this.valveLastAngle = angle;
+        window.prodGame.turnGasValve(delta);
+      }
+
+      // Hover Tooltip check
       if (this.interactables && this.camera && window.prodGame && !window.prodGame.cctvOpen) {
         this.raycaster.setFromCamera(this.mouseVec, this.camera);
         const hits = this.raycaster.intersectObjects(this.interactables, true);
@@ -969,174 +893,111 @@ class View3D {
       this.renderer.setSize(w, h);
     });
 
-    // Click on 3D interactive objects (buttons, DIP switches, terminal)
+    // Clicks on 3D objects
     this.container.addEventListener('click', () => {
       if (!window.prodGame || !window.prodGame.running || window.prodGame.cctvOpen) return;
       this.raycaster.setFromCamera(this.mouseVec, this.camera);
       const hits = this.raycaster.intersectObjects(this.interactables, true);
       if (hits.length > 0) {
         let obj = hits[0].object;
-        while (obj && !obj.userData?.action && obj.parent) {
-          obj = obj.parent;
-        }
+        while (obj && !obj.userData?.action && obj.parent) obj = obj.parent;
         if (obj && obj.userData?.action) {
-          this._handleInteractAction(obj.userData.action);
+          this._handleAction(obj.userData.action);
         }
       }
     });
   }
 
-  _handleInteractAction(action) {
+  _handleAction(action) {
     if (!window.prodGame) return;
     if (action === 'toggleGateLeft') window.prodGame.toggleSwitch('gateLeft');
     else if (action === 'toggleGateRight') window.prodGame.toggleSwitch('gateRight');
     else if (action === 'pingLeft') window.prodGame.pingPort('left');
     else if (action === 'pingRight') window.prodGame.pingPort('right');
     else if (action === 'writePatch') window.prodGame.writePatchChunk();
-    else if (action.startsWith('toggleDip_')) {
-      const idx = parseInt(action.split('_')[1], 10);
-      window.prodGame.toggleDip(idx);
+    else if (action === 'printCarrot') window.prodGame.startPrintingCarrot();
+    else if (action === 'hitTadpole') window.prodGame.hitTadpole();
+    else if (action === 'purgeSteam') window.prodGame.purgeVentsWithSteam();
+    else if (action === 'flipBreaker') window.prodGame.resetBreaker();
+    else if (action === 'spinGasValve') {
+      this.isDraggingValve = true;
+      this.valveLastAngle = 0;
+      window.prodGame.turnGasValve(Math.PI * 0.7);
     }
   }
 
-  // Update live CRT terminal canvas texture
-  _updateCRTTexture() {
-    if (!this.crtCanvas) return;
-    const ctx = this.crtCanvas.getContext('2d');
-    ctx.fillStyle = '#060a0f';
-    ctx.fillRect(0, 0, 512, 384);
+  // Check if player's camera yaw is pointing towards a specific monster direction
+  isPlayerLookingAt(dir) {
+    // Normalize yaw to 0..2*PI
+    const normYaw = ((this.yaw % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2);
 
-    // Scanlines
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.25)';
-    for (let y = 0; y < 384; y += 4) {
-      ctx.fillRect(0, y, 512, 2);
+    if (dir === 'DOOR_LEFT') {
+      // Left is around PI*0.5
+      return Math.abs(normYaw - Math.PI * 0.5) < 0.45;
+    } else if (dir === 'DOOR_RIGHT') {
+      // Right is around PI*1.5
+      return Math.abs(normYaw - Math.PI * 1.5) < 0.45;
+    } else if (dir === 'HALL_FRONT') {
+      // Front is around 0 or 2*PI
+      return normYaw < 0.45 || normYaw > Math.PI * 2 - 0.45;
+    } else if (dir === 'WINDOW_BACK') {
+      // Back window is around PI
+      return Math.abs(normYaw - Math.PI) < 0.55;
     }
-
-    // Top status
-    ctx.fillStyle = '#10b981';
-    ctx.font = 'bold 16px Courier New, monospace';
-    const pct = window.prodGame ? Math.floor(window.prodGame.patchProgress) : 0;
-    ctx.fillText(`HOTFIX_PROD.JS [ПАТЧ: ${pct}%]`, 20, 32);
-
-    // Code lines
-    ctx.font = '14px Courier New, monospace';
-    const lines = window.prodGame ? window.prodGame.codeLines : [];
-    const displayLines = lines.slice(-6);
-    displayLines.forEach((line, i) => {
-      ctx.fillStyle = i === displayLines.length - 1 ? '#38bdf8' : '#22c55e';
-      ctx.fillText(line, 20, 75 + i * 44);
-    });
-
-    if (this.crtTexture) this.crtTexture.needsUpdate = true;
+    return false;
   }
 
-  // Update animatronics 3D positions based on current AI state in engine.js
-  _updateAnimatronicPositions() {
-    if (!window.prodGame) return;
-    const ai = window.prodGame.ai;
-
-    // BONNIE (Port 22 SSH / Left Lane)
-    if (this.entities.bonnie) {
-      if (ai.bonnie.pos === 'DOOR_LEFT') {
-        // Outside the left door window!
-        this.entities.bonnie.position.set(-6.2, 0, -0.5);
-        this.entities.bonnie.rotation.y = Math.PI / 2;
-        this.entities.bonnie.visible = true;
-      } else if (ai.bonnie.pos === 'CAM02') {
-        this.entities.bonnie.position.set(-8.5, 0, -2.5);
-        this.entities.bonnie.rotation.y = 0;
-        this.entities.bonnie.visible = true;
-      } else if (ai.bonnie.pos === 'CAM01') {
-        this.entities.bonnie.position.set(-1.8, 0, -18);
-        this.entities.bonnie.rotation.y = 0;
-        this.entities.bonnie.visible = true;
-      } else {
-        this.entities.bonnie.visible = false;
-      }
-    }
-
-    // CHICA (Port 5432 SQL / Right Lane)
-    if (this.entities.chica) {
-      if (ai.chica.pos === 'DOOR_RIGHT') {
-        // Outside right door window!
-        this.entities.chica.position.set(6.2, 0, -0.5);
-        this.entities.chica.rotation.y = -Math.PI / 2;
-        this.entities.chica.visible = true;
-      } else if (ai.chica.pos === 'CAM04') {
-        this.entities.chica.position.set(8.5, 0, -2.5);
-        this.entities.chica.rotation.y = 0;
-        this.entities.chica.visible = true;
-      } else if (ai.chica.pos === 'CAM01') {
-        this.entities.chica.position.set(1.8, 0, -18);
-        this.entities.chica.rotation.y = 0;
-        this.entities.chica.visible = true;
-      } else {
-        this.entities.chica.visible = false;
-      }
-    }
-
-    // FOXY (Quarantine Cove -> Sprints Center)
-    if (this.entities.foxy) {
-      if (ai.foxy.sprinting) {
-        // Sprinting down central approach tunnel!
-        this.entities.foxy.position.set(0, 0, -2.5 - (ai.foxy.sprintTimer * 1.5));
-        this.entities.foxy.rotation.y = 0;
-        this.entities.foxy.visible = true;
-      } else {
-        // Inside CAM05 Cove
-        this.entities.foxy.position.set(0, 0, -21);
-        this.entities.foxy.rotation.y = 0;
-        this.entities.foxy.visible = true;
-      }
-    }
-
-    // SKYNET-FREDDY (Center Hub)
-    if (this.entities.freddy) {
-      if (ai.freddy.pos === 'DOOR_CENTER') {
-        this.entities.freddy.position.set(0, 0, -4.5);
-        this.entities.freddy.rotation.y = 0;
-        this.entities.freddy.visible = true;
-      } else if (ai.freddy.pos === 'CAM06') {
-        this.entities.freddy.position.set(0, 0, -8.5);
-        this.entities.freddy.rotation.y = 0;
-        this.entities.freddy.visible = true;
-      } else if (ai.freddy.pos === 'CAM03') {
-        this.entities.freddy.position.set(0, 0, -12);
-        this.entities.freddy.rotation.y = 0;
-        this.entities.freddy.visible = true;
-      } else if (ai.freddy.pos === 'CAM01') {
-        this.entities.freddy.position.set(0, 0, -16);
-        this.entities.freddy.rotation.y = 0;
-        this.entities.freddy.visible = true;
-      } else {
-        this.entities.freddy.visible = false;
-      }
-    }
-  }
-
-  // Jumpscare Animation Sequence in 3D
-  startJumpscare(type = 'ai') {
+  startJumpscare(type) {
     this.jumpscareActive = true;
     this.jumpscareType = type;
     this.jumpscareTimer = 0;
 
-    // Pick jumpscare model
-    if (type === 'pukan') {
-      this.jumpscareEntity = null;
+    // Pick jumpscare 3D model
+    if (type === 'distortion') {
+      this.jumpscareEntity = this.monsters3D.distortion;
+    } else if (type === 'trojan') {
+      this.jumpscareEntity = this.monsters3D.trojan;
+    } else if (type === 'burgundy') {
+      this.jumpscareEntity = this.monsters3D.burgundy;
+    } else if (type === 'tadpole') {
+      this.jumpscareEntity = this.monsters3D.tadpole;
     } else {
-      // Pick closest attacking animatronic
-      const ai = window.prodGame ? window.prodGame.ai : null;
-      if (ai && ai.foxy.sprinting) this.jumpscareEntity = this.entities.foxy;
-      else if (ai && ai.bonnie.pos === 'DOOR_LEFT') this.jumpscareEntity = this.entities.bonnie;
-      else if (ai && ai.chica.pos === 'DOOR_RIGHT') this.jumpscareEntity = this.entities.chica;
-      else this.jumpscareEntity = this.entities.freddy || this.entities.bonnie;
-
-      if (this.jumpscareEntity) {
-        this.jumpscareEntity.visible = true;
-        this.jumpscareEntity.position.set(0, 0.4, -2.5);
-        this.jumpscareEntity.rotation.set(0, 0, 0);
-      }
+      this.jumpscareEntity = this.monsters3D.distortion;
     }
+
+    if (this.jumpscareEntity) {
+      this.jumpscareEntity.visible = true;
+      this.jumpscareEntity.position.set(0, 0.4, -2.4);
+      this.jumpscareEntity.rotation.set(0, 0, 0);
+    }
+  }
+
+  _updateCRTTexture() {
+    if (!this.crtCanvas) return;
+    const ctx = this.crtCanvas.getContext('2d');
+    ctx.fillStyle = '#05090f';
+    ctx.fillRect(0, 0, 512, 384);
+
+    // CRT scanlines
+    ctx.fillStyle = 'rgba(0,0,0,0.3)';
+    for (let y = 0; y < 384; y += 4) {
+      ctx.fillRect(0, y, 512, 2);
+    }
+
+    const pct = window.prodGame ? Math.floor(window.prodGame.patchProgress) : 0;
+    ctx.fillStyle = '#10b981';
+    ctx.font = 'bold 16px monospace';
+    ctx.fillText(`HOTFIX_PROD.JS [ПАТЧ: ${pct}%]`, 20, 32);
+
+    const lines = window.prodGame ? window.prodGame.codeLines : [];
+    const displayLines = lines.slice(-6);
+    displayLines.forEach((l, i) => {
+      ctx.fillStyle = i === displayLines.length - 1 ? '#38bdf8' : '#22c55e';
+      ctx.font = '13px monospace';
+      ctx.fillText(l, 20, 75 + i * 44);
+    });
+
+    if (this.crtTexture) this.crtTexture.needsUpdate = true;
   }
 
   animate() {
@@ -1146,124 +1007,171 @@ class View3D {
 
     if (!this.initialized) return;
 
-    // 1. Fan blades spinning
-    if (this.fanBlades) {
-      this.fanBlades.rotation.z += dt * 26;
-    }
+    // 1. Fan blades
+    if (this.fanBlades) this.fanBlades.rotation.z += dt * 28;
 
-    // 2. Blast doors sliding animation
+    // 2. Blast doors sliding
     if (window.prodGame) {
-      const leftTargetY = window.prodGame.switches.gateLeft ? 1.45 : 4.4;
-      this.leftDoorMesh.position.y += (leftTargetY - this.leftDoorMesh.position.y) * 0.18;
+      const g = window.prodGame;
+      const leftY = g.switches.gateLeft ? 1.45 : 4.2;
+      this.leftDoorMesh.position.y += (leftY - this.leftDoorMesh.position.y) * 0.18;
 
-      const rightTargetY = window.prodGame.switches.gateRight ? 1.45 : 4.4;
-      this.rightDoorMesh.position.y += (rightTargetY - this.rightDoorMesh.position.y) * 0.18;
+      const rightY = g.switches.gateRight ? 1.45 : 4.2;
+      this.rightDoorMesh.position.y += (rightY - this.rightDoorMesh.position.y) * 0.18;
 
-      const centerTargetY = window.prodGame.switches.gateCenter ? 1.5 : 4.5;
-      this.centerDoorMesh.position.y += (centerTargetY - this.centerDoorMesh.position.y) * 0.18;
+      const centerY = g.switches.gateCenter ? 1.5 : 4.2;
+      this.centerDoorMesh.position.y += (centerY - this.centerDoorMesh.position.y) * 0.18;
 
-      // Spotlights for Door Pings / Lights
-      const leftLightOn = window.prodGame.pingLeftActive || (!window.prodGame.switches.gateLeft && window.prodGame.power > 0);
+      // Lights & Spotlights
+      const leftLightOn = g.pingLeftActive || (!g.switches.gateLeft && g.power > 0 && !g.hazards.blackout);
       this.leftSpotlight.intensity = leftLightOn ? 3.5 : 0;
 
-      const rightLightOn = window.prodGame.pingRightActive || (!window.prodGame.switches.gateRight && window.prodGame.power > 0);
+      const rightLightOn = g.pingRightActive || (!g.switches.gateRight && g.power > 0 && !g.hazards.blackout);
       this.rightSpotlight.intensity = rightLightOn ? 3.5 : 0;
 
-      // Pukanometer needle
+      // Blackout Lights off
+      if (g.hazards.blackout) {
+        this.officeLight.intensity = 0.05;
+        this.alarmStrobe.intensity = Math.sin(time * 12) > 0 ? 1.8 : 0;
+        this.alarmStrobe.color.setHex(0xff0000);
+      } else {
+        this.officeLight.intensity = g.pukanTemp > 75 ? (Math.random() < 0.1 ? 0.4 : 1.4) : 1.45;
+        this.alarmStrobe.intensity = g.pukanTemp > 75 ? 2.2 : 0;
+      }
+
+      // Pukanometer Dial Needle
       if (this.pukanDialNeedle) {
-        const heat = window.prodGame.pukanTemp;
-        const targetRot = -Math.PI * 0.75 + (heat / 100) * (Math.PI * 1.5);
+        const targetRot = -Math.PI * 0.75 + (g.pukanTemp / 100) * (Math.PI * 1.5);
         this.pukanDialNeedle.rotation.z += (targetRot - this.pukanDialNeedle.rotation.z) * 0.1;
       }
 
-      // DIP Switches Levers orientation
-      for (let i = 0; i < 4; i++) {
-        const bit = window.prodGame.switches.dip[i];
-        const targetRotX = bit === 1 ? -0.45 : 0.45;
-        this.dipLevers[i].rotation.x += (targetRotX - this.dipLevers[i].rotation.x) * 0.2;
-
-        // Target LED illumination
-        const targetBit = window.prodGame.targetDip[i];
-        const active = window.prodGame.dipPuzzleActive;
-        this.dipLeds[i].material.color.setHex(active ? (targetBit === 1 ? 0xef4444 : 0x06b6d4) : 0x22c55e);
+      // Bio-printer carrot hologram spin
+      if (this.carrotHologram) {
+        this.carrotHologram.rotation.y += dt * 3.5;
+        this.carrotHologram.visible = g.hazards.printerWorking || g.hazards.carrotsCount > 0;
       }
 
-      // Emergency strobe light if boiling or hacked
-      if (window.prodGame.pukanTemp > 75 || window.prodGame.hackCount > 2) {
-        this.alarmStrobe.intensity = Math.sin(time * 16) > 0 ? 2.5 : 0;
-      } else {
-        this.alarmStrobe.intensity = 0;
+      // Gas Valve wheel rotation
+      if (this.gasValveWheel) {
+        this.gasValveWheel.rotation.y = g.hazards.valveAngle;
       }
 
-      // Fluorescent ceiling light slight hum flicker
-      if (Math.random() < 0.02) {
-        this.officeLight.intensity = 0.5 + Math.random() * 0.9;
-      } else {
-        this.officeLight.intensity = 1.35;
+      // Breaker lever state
+      if (this.breakerLever) {
+        this.breakerLever.rotation.x = g.hazards.blackout ? 0.45 : -0.45;
       }
+
+      // Ceiling Vent Grate & Tail
+      if (this.ventGrate && this.burgundyTail) {
+        if (g.monsters.burgundy.stage === 2) {
+          this.ventGrate.position.y = 3.9 + Math.sin(time * 24) * 0.04;
+          this.burgundyTail.visible = true;
+          this.burgundyTail.rotation.z = Math.sin(time * 14) * 0.35;
+        } else {
+          this.ventGrate.position.y = 3.9;
+          this.burgundyTail.visible = false;
+        }
+      }
+
+      // 3. Monsters 3D Live Placements
+      this._updateMonsters3D(time);
     }
 
-    // 3. Jumpscare State vs CCTV vs Normal Office Camera
+    // 4. Jumpscare Animation vs CCTV vs 360 Office Camera
     if (this.jumpscareActive) {
       this.jumpscareTimer += dt;
-      // Violent 3D lunging & jaw shaking
       if (this.jumpscareEntity) {
-        // Lunge straight into camera face!
-        this.jumpscareEntity.position.z += ((-1.05) - this.jumpscareEntity.position.z) * 0.22;
+        this.jumpscareEntity.position.z += (-1.05 - this.jumpscareEntity.position.z) * 0.22;
         this.jumpscareEntity.position.x = (Math.random() - 0.5) * 0.18;
         this.jumpscareEntity.position.y = 0.35 + (Math.random() - 0.5) * 0.18;
-        this.jumpscareEntity.rotation.z = (Math.random() - 0.5) * 0.25;
       }
-      // Camera shake
-      this.camera.position.x = (Math.random() - 0.5) * 0.12;
-      this.camera.position.y = 1.65 + (Math.random() - 0.5) * 0.12;
-      this.alarmStrobe.intensity = Math.random() > 0.4 ? 4.5 : 0;
-      this.alarmStrobe.color.setHex(Math.random() > 0.5 ? 0xff0000 : 0xffffff);
-
-      if (this.jumpscareTimer > 1.6) {
-        this.jumpscareActive = false;
-      }
+      this.camera.position.x = (Math.random() - 0.5) * 0.14;
+      this.camera.position.y = 1.62 + (Math.random() - 0.5) * 0.14;
+      if (this.jumpscareTimer > 1.6) this.jumpscareActive = false;
     } else if (window.prodGame && window.prodGame.cctvOpen) {
-      // CCTV Security Camera View Mode
+      // CCTV Cam View
       const camKey = window.prodGame.currentCam || 'CAM01';
       const cfg = this.camPositions[camKey] || this.camPositions.CAM01;
-
-      // Place camera at security mount
       this.camera.position.copy(cfg.pos);
-      // Slight CCTV pan bob
-      const camSway = Math.sin(time * 0.7) * 0.08;
-      const targetLook = cfg.lookAt.clone();
-      targetLook.x += camSway;
-      this.camera.lookAt(targetLook);
-
-      this._updateAnimatronicPositions();
+      const camLook = cfg.lookAt.clone();
+      camLook.x += Math.sin(time * 0.6) * 0.06;
+      this.camera.lookAt(camLook);
     } else {
-      // Normal First-Person Office Panning (FNaF Scott Cawthon style)
-      this.camera.position.set(0, 1.65, 0.35);
+      // 360° Office Camera Look
+      this.camera.position.set(0, 1.62, 0.15);
 
-      // Mouse X: 0 (left door) to 1 (right door) -> Yaw -55deg to +55deg
-      this.targetYaw = (0.5 - this.mouseX) * (Math.PI * 0.65);
-      this.currentYaw += (this.targetYaw - this.currentYaw) * 0.09;
+      this.yaw += (this.targetYaw - this.yaw) * 0.09;
+      this.pitch += (this.targetPitch - this.pitch) * 0.09;
 
-      // Mouse Y: subtle vertical tilt
-      this.targetPitch = (0.5 - this.mouseY) * 0.35;
-      this.currentPitch += (this.targetPitch - this.currentPitch) * 0.09;
-
-      // Gentle natural breathing sway
-      const breathX = Math.sin(time * 1.5) * 0.003;
-      const breathY = Math.cos(time * 3.0) * 0.004;
-
-      this.camera.rotation.set(this.currentPitch + breathY, this.currentYaw + breathX, 0, 'YXZ');
-
-      this._updateAnimatronicPositions();
+      const breath = Math.sin(time * 1.6) * 0.003;
+      this.camera.rotation.set(this.pitch, this.yaw + breath, 0, 'YXZ');
     }
 
-    // Refresh live code screen periodically
-    if (Math.random() < 0.25) {
-      this._updateCRTTexture();
-    }
+    if (Math.random() < 0.2) this._updateCRTTexture();
 
     this.renderer.render(this.scene, this.camera);
+  }
+
+  _updateMonsters3D(time) {
+    const g = window.prodGame;
+    if (!g) return;
+
+    // A. Distortion Giant
+    const dist = g.monsters.distortion;
+    if (this.monsters3D.distortion) {
+      if (dist.active && dist.pos !== 'NONE') {
+        this.monsters3D.distortion.visible = true;
+        // Vertex jitter / glitch
+        this.monsters3D.distortion.position.x += (Math.random() - 0.5) * 0.04;
+
+        if (dist.pos === 'DOOR_LEFT') {
+          this.monsters3D.distortion.position.set(-6.2, 0, -0.5);
+          this.monsters3D.distortion.rotation.y = Math.PI / 2;
+        } else if (dist.pos === 'DOOR_RIGHT') {
+          this.monsters3D.distortion.position.set(6.2, 0, -0.5);
+          this.monsters3D.distortion.rotation.y = -Math.PI / 2;
+        } else if (dist.pos === 'HALL_FRONT') {
+          this.monsters3D.distortion.position.set(0, 0, -5.5);
+          this.monsters3D.distortion.rotation.y = 0;
+        } else if (dist.pos === 'WINDOW_BACK') {
+          this.monsters3D.distortion.position.set(0, 0, 5.2);
+          this.monsters3D.distortion.rotation.y = Math.PI;
+        }
+      } else {
+        this.monsters3D.distortion.visible = false;
+      }
+    }
+
+    // B. Bug-Tadpole on Desk
+    const tad = g.monsters.tadpole;
+    if (this.monsters3D.tadpole) {
+      if (tad.active) {
+        this.monsters3D.tadpole.visible = true;
+        // Twitching & scuttling
+        tad.x += Math.sin(time * 8) * 0.006;
+        this.monsters3D.tadpole.position.set(tad.x, 1.08, -1.2 + Math.cos(time * 8) * 0.06);
+        this.monsters3D.tadpole.rotation.y = time * 6;
+      } else {
+        this.monsters3D.tadpole.visible = false;
+      }
+    }
+
+    // C. Trojan Horse (gliding along tunnel in pure T-pose!)
+    const trojan = g.monsters.trojan;
+    if (this.monsters3D.trojan) {
+      if (trojan.inRoom) {
+        this.monsters3D.trojan.visible = true;
+        this.monsters3D.trojan.position.set(0, 0, -2.6);
+        this.monsters3D.trojan.rotation.y = 0;
+      } else if (g.cctvOpen && g.currentCam === 'CAM03') {
+        // Seen in tunnel on CCTV!
+        this.monsters3D.trojan.visible = true;
+        this.monsters3D.trojan.position.set(0, 0, -10 - (trojan.distance * 0.15));
+        this.monsters3D.trojan.rotation.y = 0;
+      } else {
+        this.monsters3D.trojan.visible = false;
+      }
+    }
   }
 }
 

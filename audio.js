@@ -1,16 +1,21 @@
 // ============================================================================
-// ПЯТЬ НОЧЕЙ НА ПРОДЕ — Procedural Web Audio Engine & Jumpscare Synthesizer
+// ПЯТЬ НОЧЕЙ НА ПРОДЕ — Advanced Procedural Horror Audio Engine
+// Real-time Web Audio API synthesis: Cozy crickets & rain from Alfred-Game,
+// Low bowed cello dread notes, monster cues, gas leaks, and razor-sharp screamers.
 // ============================================================================
 
 class SoundEngine {
   constructor() {
     this.ctx = null;
     this.masterGain = null;
-    this.ambientOsc = null;
     this.ambientGain = null;
-    this.sirenInterval = null;
+    this.cricketGain = null;
+    this.rainSource = null;
+    this.cricketInterval = null;
+    this.celloInterval = null;
     this.muted = false;
     this.volume = 0.85;
+    this.inBlackout = false;
   }
 
   init() {
@@ -20,6 +25,13 @@ class SoundEngine {
       this.masterGain = this.ctx.createGain();
       this.masterGain.gain.value = this.volume;
       this.masterGain.connect(this.ctx.destination);
+
+      this.ambientGain = this.ctx.createGain();
+      this.ambientGain.gain.setValueAtTime(0.14, this.ctx.currentTime);
+      this.ambientGain.connect(this.masterGain);
+
+      this.startAmbience();
+      this.startCelloDreadLoop();
     }
     if (this.ctx.state === 'suspended') {
       this.ctx.resume();
@@ -41,73 +53,384 @@ class SoundEngine {
     return this.muted;
   }
 
-  // Mechanical heavy switch clack
+  // -------------------------------------------------------------------------
+  // Cozy Ambience (Night Sky, Soft Rain/Breeze, and Crickets from Alfred-Game)
+  // -------------------------------------------------------------------------
+  startAmbience() {
+    if (!this.ctx || this.rainSource) return;
+
+    // Filtered pink noise for cozy rain / server room air conditioning
+    const bufferSize = this.ctx.sampleRate * 2;
+    const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+
+    let b0 = 0, b1 = 0, b2 = 0;
+    for (let i = 0; i < bufferSize; i++) {
+      const white = Math.random() * 2 - 1;
+      b0 = 0.99886 * b0 + white * 0.0555179;
+      b1 = 0.99332 * b1 + white * 0.0750759;
+      b2 = 0.96900 * b2 + white * 0.1538520;
+      data[i] = (b0 + b1 + b2) * 0.06;
+    }
+
+    const noise = this.ctx.createBufferSource();
+    noise.buffer = buffer;
+    noise.loop = true;
+
+    const filter = this.ctx.createBiquadFilter();
+    filter.type = 'lowpass';
+    filter.frequency.setValueAtTime(850, this.ctx.currentTime);
+
+    noise.connect(filter);
+    filter.connect(this.ambientGain);
+    noise.start();
+    this.rainSource = noise;
+
+    // Procedural crickets outside the window
+    this.cricketInterval = setInterval(() => {
+      if (!this.muted && !this.inBlackout && Math.random() < 0.65) {
+        this._playCricketChirp();
+      }
+    }, 2800);
+  }
+
+  _playCricketChirp() {
+    if (!this.ctx || this.inBlackout) return;
+    const now = this.ctx.currentTime;
+    const chirpCount = 2 + Math.floor(Math.random() * 3);
+
+    for (let c = 0; c < chirpCount; c++) {
+      const t = now + c * 0.085;
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(4600 + Math.random() * 400, t);
+      osc.frequency.linearRampToValueAtTime(4300, t + 0.045);
+
+      gain.gain.setValueAtTime(0.0001, t);
+      gain.gain.linearRampToValueAtTime(0.025, t + 0.015);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.048);
+
+      osc.connect(gain);
+      gain.connect(this.ambientGain);
+      osc.start(t);
+      osc.stop(t + 0.05);
+    }
+  }
+
+  // -------------------------------------------------------------------------
+  // Low Bowed Cello / Violin Dread Tone (Every ~15s when lights are on)
+  // -------------------------------------------------------------------------
+  startCelloDreadLoop() {
+    if (this.celloInterval) clearInterval(this.celloInterval);
+    this.celloInterval = setInterval(() => {
+      if (!this.muted && !this.inBlackout && Math.random() < 0.85) {
+        this.playLowCelloNote();
+      }
+    }, 15000);
+  }
+
+  playLowCelloNote() {
+    if (!this.ctx || this.inBlackout) return;
+    const now = this.ctx.currentTime;
+    const duration = 5.5;
+
+    // C2, D#2, F2, or G2 dark cello notes
+    const celloNotes = [65.41, 77.78, 87.31, 98.00];
+    const freq = celloNotes[Math.floor(Math.random() * celloNotes.length)];
+
+    const osc1 = this.ctx.createOscillator();
+    const osc2 = this.ctx.createOscillator();
+    const filter = this.ctx.createBiquadFilter();
+    const gain = this.ctx.createGain();
+
+    osc1.type = 'sawtooth';
+    osc2.type = 'triangle';
+    osc1.frequency.setValueAtTime(freq, now);
+    osc2.frequency.setValueAtTime(freq * 1.004, now); // subtle chorusing
+
+    // Vibrato LFO
+    const lfo = this.ctx.createOscillator();
+    const lfoGain = this.ctx.createGain();
+    lfo.type = 'sine';
+    lfo.frequency.setValueAtTime(4.8, now);
+    lfoGain.gain.setValueAtTime(1.2, now);
+    lfo.connect(lfoGain);
+    lfoGain.connect(osc1.frequency);
+    lfoGain.connect(osc2.frequency);
+    lfo.start(now);
+    lfo.stop(now + duration);
+
+    // Warm resonant lowpass filter
+    filter.type = 'lowpass';
+    filter.frequency.setValueAtTime(280, now);
+    filter.frequency.linearRampToValueAtTime(480, now + duration * 0.4);
+    filter.frequency.exponentialRampToValueAtTime(160, now + duration);
+    filter.Q.setValueAtTime(3.5, now);
+
+    // Slow bowed envelope
+    gain.gain.setValueAtTime(0.0001, now);
+    gain.gain.linearRampToValueAtTime(0.08, now + 1.2);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + duration);
+
+    osc1.connect(filter);
+    osc2.connect(filter);
+    filter.connect(gain);
+    gain.connect(this.masterGain);
+
+    osc1.start(now);
+    osc2.start(now);
+    osc1.stop(now + duration);
+    osc2.stop(now + duration);
+  }
+
+  // -------------------------------------------------------------------------
+  // Blackout Silence & Creeping Tension
+  // -------------------------------------------------------------------------
+  setBlackout(state) {
+    this.inBlackout = state;
+    if (this.ambientGain) {
+      const now = this.ctx ? this.ctx.currentTime : 0;
+      this.ambientGain.gain.setTargetAtTime(state ? 0.015 : 0.14, now, 0.5);
+    }
+    if (state) {
+      this.playBreakerTrip();
+    }
+  }
+
+  playBreakerTrip() {
+    this.init();
+    const now = this.ctx.currentTime;
+    // Spark and blackout powerdown drop
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(220, now);
+    osc.frequency.exponentialRampToValueAtTime(18, now + 0.6);
+
+    gain.gain.setValueAtTime(0.45, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.65);
+
+    osc.connect(gain);
+    gain.connect(this.masterGain);
+    osc.start(now);
+    osc.stop(now + 0.7);
+
+    this._noiseBurst(0.18, 0.45, 900);
+  }
+
+  playBreakerReset() {
+    this.init();
+    const now = this.ctx.currentTime;
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = 'square';
+    osc.frequency.setValueAtTime(140, now);
+    osc.frequency.exponentialRampToValueAtTime(540, now + 0.08);
+
+    gain.gain.setValueAtTime(0.4, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+
+    osc.connect(gain);
+    gain.connect(this.masterGain);
+    osc.start(now);
+    osc.stop(now + 0.13);
+  }
+
+  // -------------------------------------------------------------------------
+  // Monsters Audio (Distortion, Tadpole, Trojan, Burgundy Vent Stalker)
+  // -------------------------------------------------------------------------
+  playDistortionDrone() {
+    this.init();
+    const now = this.ctx.currentTime;
+    const freqs = [55, 110, 165, 330];
+    freqs.forEach((f) => {
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(f, now);
+      osc.frequency.linearRampToValueAtTime(f * (0.85 + Math.random() * 0.3), now + 0.9);
+
+      gain.gain.setValueAtTime(0.08, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.95);
+
+      osc.connect(gain);
+      gain.connect(this.masterGain);
+      osc.start(now);
+      osc.stop(now + 1.0);
+    });
+    this._noiseBurst(0.3, 0.25, 2400);
+  }
+
+  playVentClick() {
+    this.init();
+    const now = this.ctx.currentTime;
+    for (let i = 0; i < 3; i++) {
+      const t = now + i * 0.06;
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(1800 + Math.random() * 600, t);
+      osc.frequency.exponentialRampToValueAtTime(240, t + 0.015);
+
+      gain.gain.setValueAtTime(0.2, t);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.018);
+
+      osc.connect(gain);
+      gain.connect(this.masterGain);
+      osc.start(t);
+      osc.stop(t + 0.02);
+    }
+  }
+
+  playTrojanCreak() {
+    this.init();
+    const now = this.ctx.currentTime;
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(95, now);
+    osc.frequency.linearRampToValueAtTime(240, now + 0.3);
+    osc.frequency.linearRampToValueAtTime(80, now + 0.55);
+
+    gain.gain.setValueAtTime(0.18, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.6);
+
+    osc.connect(gain);
+    gain.connect(this.masterGain);
+    osc.start(now);
+    osc.stop(now + 0.65);
+  }
+
+  playTadpoleSplat() {
+    this.init();
+    const now = this.ctx.currentTime;
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(750, now);
+    osc.frequency.exponentialRampToValueAtTime(60, now + 0.12);
+
+    gain.gain.setValueAtTime(0.3, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.14);
+
+    osc.connect(gain);
+    gain.connect(this.masterGain);
+    osc.start(now);
+    osc.stop(now + 0.15);
+    this._noiseBurst(0.08, 0.3, 1100);
+  }
+
+  playGasValveTurn() {
+    this.init();
+    const now = this.ctx.currentTime;
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = 'square';
+    osc.frequency.setValueAtTime(180, now);
+    osc.frequency.exponentialRampToValueAtTime(85, now + 0.06);
+
+    gain.gain.setValueAtTime(0.25, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.07);
+
+    osc.connect(gain);
+    gain.connect(this.masterGain);
+    osc.start(now);
+    osc.stop(now + 0.08);
+    this._noiseBurst(0.12, 0.18, 3200); // steam hiss
+  }
+
+  playPrinterPrint() {
+    this.init();
+    const now = this.ctx.currentTime;
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(640, now);
+    osc.frequency.linearRampToValueAtTime(880, now + 0.1);
+
+    gain.gain.setValueAtTime(0.1, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+
+    osc.connect(gain);
+    gain.connect(this.masterGain);
+    osc.start(now);
+    osc.stop(now + 0.13);
+  }
+
+  playPrinterDone() {
+    this.init();
+    const now = this.ctx.currentTime;
+    const notes = [587.33, 783.99, 1046.5];
+    notes.forEach((f, i) => {
+      const t = now + i * 0.08;
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(f, t);
+      gain.gain.setValueAtTime(0.2, t);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.18);
+      osc.connect(gain);
+      gain.connect(this.masterGain);
+      osc.start(t);
+      osc.stop(t + 0.19);
+    });
+  }
+
+  // -------------------------------------------------------------------------
+  // Classic FNaF Controls & Screamer Synthesizer
+  // -------------------------------------------------------------------------
   playSwitch(state = true) {
     this.init();
     const now = this.ctx.currentTime;
     const osc = this.ctx.createOscillator();
     const gain = this.ctx.createGain();
-
     osc.type = 'triangle';
-    osc.frequency.setValueAtTime(state ? 190 : 140, now);
-    osc.frequency.exponentialRampToValueAtTime(state ? 620 : 85, now + 0.045);
-
+    osc.frequency.setValueAtTime(state ? 210 : 130, now);
+    osc.frequency.exponentialRampToValueAtTime(state ? 640 : 75, now + 0.045);
     gain.gain.setValueAtTime(0.35, now);
     gain.gain.exponentialRampToValueAtTime(0.001, now + 0.055);
-
     osc.connect(gain);
     gain.connect(this.masterGain);
     osc.start(now);
     osc.stop(now + 0.06);
-
-    // Click transient noise
     this._noiseBurst(0.025, 0.2, state ? 2200 : 1200);
   }
 
-  // Heavy firewall gate slam
   playGateSlam(closed = true) {
     this.init();
     const now = this.ctx.currentTime;
     const osc = this.ctx.createOscillator();
     const gain = this.ctx.createGain();
-
     osc.type = 'sawtooth';
-    osc.frequency.setValueAtTime(closed ? 150 : 90, now);
-    osc.frequency.exponentialRampToValueAtTime(closed ? 32 : 220, now + 0.18);
-
-    gain.gain.setValueAtTime(0.5, now);
-    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.22);
-
+    osc.frequency.setValueAtTime(closed ? 160 : 85, now);
+    osc.frequency.exponentialRampToValueAtTime(closed ? 28 : 240, now + 0.2);
+    gain.gain.setValueAtTime(0.55, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.23);
     osc.connect(gain);
     gain.connect(this.masterGain);
     osc.start(now);
-    osc.stop(now + 0.23);
-
-    this._noiseBurst(0.14, 0.35, closed ? 400 : 900);
+    osc.stop(now + 0.24);
+    this._noiseBurst(0.14, 0.4, closed ? 380 : 920);
   }
 
-  // Keyboard clack when coding patches
   playKeyClick() {
     this.init();
     const now = this.ctx.currentTime;
     const osc = this.ctx.createOscillator();
     const gain = this.ctx.createGain();
-    const pitch = 700 + Math.random() * 500;
-
     osc.type = 'sine';
-    osc.frequency.setValueAtTime(pitch, now);
-    osc.frequency.exponentialRampToValueAtTime(180, now + 0.025);
-
-    gain.gain.setValueAtTime(0.14, now);
+    osc.frequency.setValueAtTime(750 + Math.random() * 450, now);
+    osc.frequency.exponentialRampToValueAtTime(170, now + 0.025);
+    gain.gain.setValueAtTime(0.12, now);
     gain.gain.exponentialRampToValueAtTime(0.001, now + 0.03);
-
     osc.connect(gain);
     gain.connect(this.masterGain);
     osc.start(now);
     osc.stop(now + 0.032);
   }
 
-  // Port scanner ping sound (safe vs danger)
   playPing(danger = false) {
     this.init();
     const now = this.ctx.currentTime;
@@ -124,129 +447,60 @@ class SoundEngine {
       osc.start(now);
       osc.stop(now + 0.13);
     } else {
-      // Classic FNaF window stinger / danger chord!
-      const freqs = [110, 116.5, 233, 311, 466];
+      const freqs = [105, 114, 228, 305, 460];
       freqs.forEach((f) => {
         const osc = this.ctx.createOscillator();
         const gain = this.ctx.createGain();
         osc.type = 'sawtooth';
         osc.frequency.setValueAtTime(f, now);
-        gain.gain.setValueAtTime(0.16, now);
-        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.45);
+        gain.gain.setValueAtTime(0.18, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.48);
         osc.connect(gain);
         gain.connect(this.masterGain);
         osc.start(now);
-        osc.stop(now + 0.46);
+        osc.stop(now + 0.5);
       });
     }
   }
 
-  // Alarm beep when dip-switch mutates or hack occurs
-  playAlertBeep(urgent = false) {
-    this.init();
-    const now = this.ctx.currentTime;
-    const osc = this.ctx.createOscillator();
-    const gain = this.ctx.createGain();
-    osc.type = 'square';
-    osc.frequency.setValueAtTime(urgent ? 880 : 587, now);
-    if (urgent) {
-      osc.frequency.setValueAtTime(1174, now + 0.07);
-    }
-    gain.gain.setValueAtTime(0.22, now);
-    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.16);
-    osc.connect(gain);
-    gain.connect(this.masterGain);
-    osc.start(now);
-    osc.stop(now + 0.17);
-  }
-
-  // Steam hiss when cooling down chair / venting
   playSteamVent() {
     this.init();
-    this._noiseBurst(0.22, 0.22, 1800);
+    this._noiseBurst(0.26, 0.25, 1800);
   }
 
-  // AI blocked thud at firewall door
-  playBlockedThud() {
-    this.init();
-    const now = this.ctx.currentTime;
-    for (let i = 0; i < 2; i++) {
-      const offset = i * 0.16;
-      const osc = this.ctx.createOscillator();
-      const gain = this.ctx.createGain();
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime(95, now + offset);
-      osc.frequency.exponentialRampToValueAtTime(28, now + offset + 0.14);
-      gain.gain.setValueAtTime(0.65, now + offset);
-      gain.gain.exponentialRampToValueAtTime(0.001, now + offset + 0.15);
-      osc.connect(gain);
-      gain.connect(this.masterGain);
-      osc.start(now + offset);
-      osc.stop(now + offset + 0.16);
-    }
-  }
-
-  // Foxy / DDoS sprint warning alarm!
   playSprintSiren() {
     this.init();
     const now = this.ctx.currentTime;
     for (let i = 0; i < 4; i++) {
-      const t = now + i * 0.15;
+      const t = now + i * 0.14;
       const osc = this.ctx.createOscillator();
       const gain = this.ctx.createGain();
       osc.type = 'sawtooth';
-      osc.frequency.setValueAtTime(600, t);
-      osc.frequency.linearRampToValueAtTime(1400, t + 0.12);
-      gain.gain.setValueAtTime(0.32, t);
-      gain.gain.exponentialRampToValueAtTime(0.01, t + 0.14);
+      osc.frequency.setValueAtTime(620, t);
+      osc.frequency.linearRampToValueAtTime(1450, t + 0.11);
+      gain.gain.setValueAtTime(0.34, t);
+      gain.gain.exponentialRampToValueAtTime(0.01, t + 0.13);
       osc.connect(gain);
       gain.connect(this.masterGain);
       osc.start(t);
-      osc.stop(t + 0.145);
+      osc.stop(t + 0.135);
     }
   }
 
-  // Hack counter increment stinger
-  playBreachGlitch() {
-    this.init();
-    const now = this.ctx.currentTime;
-    const freqs = [92, 138, 185, 520, 1100];
-    freqs.forEach((f) => {
-      const osc = this.ctx.createOscillator();
-      const gain = this.ctx.createGain();
-      osc.type = 'sawtooth';
-      osc.frequency.setValueAtTime(f, now);
-      osc.frequency.linearRampToValueAtTime(f * 0.6, now + 0.35);
-      gain.gain.setValueAtTime(0.18, now);
-      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.38);
-      osc.connect(gain);
-      gain.connect(this.masterGain);
-      osc.start(now);
-      osc.stop(now + 0.39);
-    });
-    this._noiseBurst(0.3, 0.45, 1500);
-  }
-
-  // ==========================================================================
-  // RAZOR-SHARP JUMPSCARE SYNTHESIZER (СКРИМЕР)
-  // Combines dissonant FM shriek, sub-bass explosion, and harsh white noise
-  // ==========================================================================
   playJumpscare(type = 'ai') {
     this.init();
     const now = this.ctx.currentTime;
-    const duration = 1.65;
+    const duration = 1.75;
 
-    // 1. Dissonant multi-oscillator cyber-shriek with rapid FM modulation
     const baseFreqs = type === 'pukan'
-      ? [75, 112, 295, 590, 888, 1340, 2100]
-      : [105, 148, 370, 622, 940, 1580, 2450, 3120];
+      ? [70, 105, 280, 560, 840, 1300, 2050]
+      : [98, 142, 360, 610, 920, 1540, 2400, 3180];
 
-    // Modulator LFO for metallic screaming vibrato
     const lfo = this.ctx.createOscillator();
     const lfoGain = this.ctx.createGain();
     lfo.type = 'square';
-    lfo.frequency.setValueAtTime(48, now);
-    lfoGain.gain.setValueAtTime(260, now);
+    lfo.frequency.setValueAtTime(52, now);
+    lfoGain.gain.setValueAtTime(290, now);
     lfo.connect(lfoGain);
     lfo.start(now);
     lfo.stop(now + duration);
@@ -256,13 +510,12 @@ class SoundEngine {
       const gain = this.ctx.createGain();
       osc.type = idx % 2 === 0 ? 'sawtooth' : 'square';
       osc.frequency.setValueAtTime(freq, now);
-      osc.frequency.exponentialRampToValueAtTime(freq * (idx % 2 === 0 ? 1.35 : 0.72), now + duration * 0.8);
+      osc.frequency.exponentialRampToValueAtTime(freq * (idx % 2 === 0 ? 1.4 : 0.7), now + duration * 0.85);
 
       lfoGain.connect(osc.frequency);
 
-      // Sharp immediate attack!
-      gain.gain.setValueAtTime(0.32, now);
-      gain.gain.setValueAtTime(0.35, now + 0.4);
+      gain.gain.setValueAtTime(0.36, now);
+      gain.gain.setValueAtTime(0.38, now + 0.4);
       gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
 
       osc.connect(gain);
@@ -271,28 +524,25 @@ class SoundEngine {
       osc.stop(now + duration);
     });
 
-    // 2. Massive distorted noise roar / explosion
-    this._noiseBurst(duration, 0.95, type === 'pukan' ? 950 : 2600);
+    this._noiseBurst(duration, 0.98, type === 'pukan' ? 950 : 2700);
 
-    // 3. Sub-bass shockwave punch
     const sub = this.ctx.createOscillator();
     const subGain = this.ctx.createGain();
     sub.type = 'sine';
-    sub.frequency.setValueAtTime(130, now);
-    sub.frequency.exponentialRampToValueAtTime(24, now + 0.9);
-    subGain.gain.setValueAtTime(0.95, now);
-    subGain.gain.exponentialRampToValueAtTime(0.001, now + 1.1);
+    sub.frequency.setValueAtTime(140, now);
+    sub.frequency.exponentialRampToValueAtTime(22, now + 0.9);
+    subGain.gain.setValueAtTime(1.0, now);
+    subGain.gain.exponentialRampToValueAtTime(0.001, now + 1.15);
     sub.connect(subGain);
     subGain.connect(this.masterGain);
     sub.start(now);
-    sub.stop(now + 1.15);
+    sub.stop(now + 1.2);
   }
 
-  // Victory 06:00 AM Chime + Kids Cheering synth
   playVictoryChime() {
     this.init();
     const now = this.ctx.currentTime;
-    const notes = [523.25, 659.25, 783.99, 1046.5]; // C5, E5, G5, C6
+    const notes = [523.25, 659.25, 783.99, 1046.5];
     notes.forEach((f, i) => {
       const t = now + i * 0.28;
       const osc = this.ctx.createOscillator();
@@ -308,7 +558,6 @@ class SoundEngine {
     });
   }
 
-  // Helper: filtered white noise burst
   _noiseBurst(duration, amp = 0.3, filterFreq = 1400) {
     if (!this.ctx) return;
     const bufferSize = Math.floor(this.ctx.sampleRate * duration);
@@ -324,7 +573,7 @@ class SoundEngine {
     const filter = this.ctx.createBiquadFilter();
     filter.type = 'bandpass';
     filter.frequency.setValueAtTime(filterFreq, this.ctx.currentTime);
-    filter.Q.setValueAtTime(0.8, this.ctx.currentTime);
+    filter.Q.setValueAtTime(0.85, this.ctx.currentTime);
 
     const gain = this.ctx.createGain();
     gain.gain.setValueAtTime(amp, this.ctx.currentTime);
