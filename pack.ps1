@@ -18,6 +18,7 @@ $sourceItems = @(
     (Join-Path $projectDir "icon.svg"),
     (Join-Path $projectDir "open_editor.bat"),
     (Join-Path $projectDir "README.md"),
+    (Join-Path $projectDir "assets"),
     (Join-Path $projectDir "scenes"),
     (Join-Path $projectDir "scripts"),
     (Join-Path $projectDir "shaders"),
@@ -40,6 +41,7 @@ if (Test-Path $exePath) {
         (Join-Path $projectDir "project.godot"),
         (Join-Path $projectDir "icon.svg"),
         (Join-Path $projectDir "README.md"),
+        (Join-Path $projectDir "assets"),
         (Join-Path $projectDir "scenes"),
         (Join-Path $projectDir "scripts"),
         (Join-Path $projectDir "shaders")

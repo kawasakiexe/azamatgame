@@ -46,8 +46,12 @@ var end_modal: PanelContainer
 var end_title_label: Label
 var end_desc_label: Label
 var _screamer_fx_timer: float = 0.0
+var _cursor_unlocked_manually: bool = false
 
 func _ready() -> void:
+	if DisplayServer.get_name() != "headless":
+		DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_FULLSCREEN)
+
 	# 1. 3D-сцена загородной серверной
 	server_room = ServerRoomScript.new()
 	server_room.name = "ServerRoom3D"
@@ -93,6 +97,18 @@ func _ready() -> void:
 	GameState.victory_triggered.connect(_on_victory_triggered)
 
 	_refresh_ui()
+	_sync_mouse_mode()
+
+func _sync_mouse_mode() -> void:
+	if DisplayServer.get_name() == "headless":
+		return
+	var need_visible := (
+		GameState.active_screen != ""
+		or (end_modal != null and end_modal.visible)
+		or GameState.game_over
+		or _cursor_unlocked_manually
+	)
+	Input.set_mouse_mode(Input.MOUSE_MODE_VISIBLE if need_visible else Input.MOUSE_MODE_CAPTURED)
 
 func _process(delta: float) -> void:
 	if _screamer_fx_timer > 0.0:
@@ -102,6 +118,7 @@ func _process(delta: float) -> void:
 			post_mat.set_shader_parameter("heat_tint", 0.75)
 		if _screamer_fx_timer <= 0.0 and GameState.game_over:
 			end_modal.visible = true
+			_sync_mouse_mode()
 		return
 
 	if post_mat:
@@ -117,6 +134,10 @@ func _unhandled_key_input(event: InputEvent) -> void:
 		return
 	var ke := event as InputEventKey
 
+	if ke.keycode == KEY_F10:
+		get_tree().quit()
+		return
+
 	if ke.keycode == KEY_F11:
 		var mode := DisplayServer.window_get_mode()
 		DisplayServer.window_set_mode(
@@ -128,12 +149,20 @@ func _unhandled_key_input(event: InputEvent) -> void:
 	if ke.keycode == KEY_SPACE:
 		if GameState.is_seated:
 			GameState.stand_up_from_chair()
+			_cursor_unlocked_manually = false
+			_sync_mouse_mode()
 			get_viewport().set_input_as_handled()
 		return
 
 	if ke.keycode == KEY_ESCAPE:
 		if GameState.active_screen != "":
 			GameState.close_interactive_screen()
+			_cursor_unlocked_manually = false
+			_sync_mouse_mode()
+			get_viewport().set_input_as_handled()
+		else:
+			_cursor_unlocked_manually = not _cursor_unlocked_manually
+			_sync_mouse_mode()
 			get_viewport().set_input_as_handled()
 		return
 
@@ -735,6 +764,9 @@ func _on_screen_opened(scr_id: String) -> void:
 	wires_modal.visible = (scr_id == "WIRES_BOX")
 	shop_modal.visible = (scr_id == "SHOP_VENDING")
 	safe_modal.visible = (scr_id == "LOBBY_SAFE")
+	if scr_id == "":
+		_cursor_unlocked_manually = false
+	_sync_mouse_mode()
 
 	if scr_id == "MAIN_TERM":
 		_populate_main_terminal()
@@ -768,9 +800,9 @@ func _refresh_ui() -> void:
 		]
 
 	if GameState.is_seated:
-		mode_hint_label.text = "🪑 ПОСТ УПРАВЛЕНИЯ (В КРЕСЛЕ) • Зажми ЛКМ для 360° обзора • Кликай по мониторам и тумблерам на столе • [ПРОБЕЛ] — Встать с кресла"
+		mode_hint_label.text = "🪑 В КРЕСЛЕ • Мышь — Обзор 360° • [E] — Взаимодействовать с мониторами и тумблерами • [ПРОБЕЛ] — Встать с кресла • [ESC] Курсор • [F11] Окно • [F10] Выход"
 	else:
-		mode_hint_label.text = "🚶 НА НОГАХ (ХОДЬБА ПО КОМНАТЕ) • [W,A,S,D] — Передвижение • Зажми ЛКМ — Поворот головы • Кликни по КРЕСЛУ или МОНИТОРАМ, чтобы сесть за пост!"
+		mode_hint_label.text = "🚶 ХОДЬБА ПО КОМНАТЕ • [W,A,S,D] — Идти • Мышь — Обзор • [E] — Сесть в кресло / Взаимодействовать • [ESC] Курсор • [F11] Окно • [F10] Выход"
 
 	if cctv_term_modal.visible:
 		var l_status := "ЗАКРЫТА 🔒" if GameState.gate_left else "ОТКРЫТА 🔓"
@@ -800,14 +832,18 @@ func _on_hover_changed(hint: String) -> void:
 
 func _on_shift_started(lvl: int) -> void:
 	end_modal.visible = false
+	_cursor_unlocked_manually = false
 	var cfg: Dictionary = GameState.SHIFT_CONFIGS.get(lvl, GameState.SHIFT_CONFIGS[1])
 	phone_label.text = "📞 " + String(cfg["phone_msg"])
 	phone_banner.visible = true
 	_refresh_ui()
+	_sync_mouse_mode()
 
 func _on_lobby_entered() -> void:
 	phone_banner.visible = false
+	_cursor_unlocked_manually = false
 	_refresh_ui()
+	_sync_mouse_mode()
 
 func _on_jumpscare_triggered(_m_type: String, title: String, desc: String) -> void:
 	end_title_label.text = "💀 " + title
@@ -815,8 +851,10 @@ func _on_jumpscare_triggered(_m_type: String, title: String, desc: String) -> vo
 	phone_banner.visible = false
 	end_modal.visible = false
 	_screamer_fx_timer = 1.65
+	_sync_mouse_mode()
 
 func _on_victory_triggered(lvl: int) -> void:
 	end_title_label.text = "🎉 06:00 AM — СМЕНА #%d ВЫЖИТА!" % lvl
 	end_desc_label.text = "Ты дожил до утра и не дал проду сгореть! В дневном лобби открыта следующая смена!"
 	end_modal.visible = true
+	_sync_mouse_mode()
