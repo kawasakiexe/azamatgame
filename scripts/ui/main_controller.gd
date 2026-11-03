@@ -45,6 +45,7 @@ var safe_display_label: Label
 var end_modal: PanelContainer
 var end_title_label: Label
 var end_desc_label: Label
+var _screamer_fx_timer: float = 0.0
 
 func _ready() -> void:
 	# 1. 3D-сцена загородной серверной
@@ -93,7 +94,16 @@ func _ready() -> void:
 
 	_refresh_ui()
 
-func _process(_delta: float) -> void:
+func _process(delta: float) -> void:
+	if _screamer_fx_timer > 0.0:
+		_screamer_fx_timer = max(0.0, _screamer_fx_timer - delta)
+		if post_mat:
+			post_mat.set_shader_parameter("distortion_glitch", 0.85)
+			post_mat.set_shader_parameter("heat_tint", 0.75)
+		if _screamer_fx_timer <= 0.0 and GameState.game_over:
+			end_modal.visible = true
+		return
+
 	if post_mat:
 		var max_stare := 4.5 if GameState.active_buffs["mirrorGlasses"] else 1.8
 		var glitch := clampf(GameState.distortion_stare_timer / max_stare, 0.0, 1.0)
@@ -802,7 +812,9 @@ func _on_lobby_entered() -> void:
 func _on_jumpscare_triggered(_m_type: String, title: String, desc: String) -> void:
 	end_title_label.text = "💀 " + title
 	end_desc_label.text = desc
-	end_modal.visible = true
+	phone_banner.visible = false
+	end_modal.visible = false
+	_screamer_fx_timer = 1.65
 
 func _on_victory_triggered(lvl: int) -> void:
 	end_title_label.text = "🎉 06:00 AM — СМЕНА #%d ВЫЖИТА!" % lvl

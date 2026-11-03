@@ -720,7 +720,15 @@ func _process(delta: float) -> void:
 
 	if jumpscare_active:
 		jumpscare_timer = max(0.0, jumpscare_timer - delta)
-		camera.position += Vector3(randf_range(-0.09, 0.09), randf_range(-0.09, 0.09), 0.0)
+		camera.fov = lerpf(camera.fov, 42.0, min(1.0, delta * 24.0))
+		camera.position += Vector3(randf_range(-0.18, 0.18), randf_range(-0.18, 0.18), randf_range(-0.10, 0.10))
+		if office_omni:
+			office_omni.light_color = Color(1.0, 0.12, 0.12)
+			office_omni.light_energy = 4.5 if (int(jumpscare_timer * 30.0) % 2 == 0) else 0.2
+	else:
+		camera.fov = lerpf(camera.fov, 72.0, min(1.0, delta * 10.0))
+		if office_omni:
+			office_omni.light_color = Color(0.72, 0.78, 0.88)
 
 	# 3. Живое обновление текста на 3D-экранах мониторов (чтобы было видно даже стоя!)
 	_update_3d_monitor_screens()

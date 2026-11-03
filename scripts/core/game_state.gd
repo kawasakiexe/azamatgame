@@ -1098,7 +1098,7 @@ func trigger_jumpscare(m_type: String, title: String, desc: String) -> void:
 	game_over = true
 	active_screen = ""
 	screen_opened.emit("")
-	ProceduralAudio.play_jumpscare_scream()
+	ProceduralAudio.play_jumpscare_by_type(m_type)
 	jumpscare_triggered.emit(m_type, title, desc)
 	ui_updated.emit()
 
