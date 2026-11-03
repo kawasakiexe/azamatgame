@@ -1,6 +1,7 @@
 # ============================================================================
-# Скрипт автоматической сборки ZIP-архива для офлайн-передачи
-# Создаёт архив dist/devops-nightmare.zip со всеми нужными файлами игры
+# Скрипт автоматической сборки актуальных ZIP-архивов в папку dist/
+# 1. dist/devops-nightmare-desktop.zip — Полная десктопная версия с .exe (для отправки друзьям)
+# 2. dist/devops-nightmare.zip         — Лёгкий архив проекта (для GitHub и быстрой передачи)
 # ============================================================================
 
 $projectDir = $PSScriptRoot
@@ -11,22 +12,41 @@ if (-not (Test-Path $distDir)) {
     New-Item -ItemType Directory -Path $distDir -Force | Out-Null
 }
 
-$files = @(
-    (Join-Path $projectDir "index.html"),
-    (Join-Path $projectDir "style.css"),
-    (Join-Path $projectDir "three.min.js"),
-    (Join-Path $projectDir "audio.js"),
-    (Join-Path $projectDir "engine.js"),
-    (Join-Path $projectDir "view3d.js"),
-    (Join-Path $projectDir "README.md")
+# 1. Собираем лёгкий архив исходников (Godot 4 + Web Prototype)
+$sourceItems = @(
+    (Join-Path $projectDir "project.godot"),
+    (Join-Path $projectDir "icon.svg"),
+    (Join-Path $projectDir "run_game.bat"),
+    (Join-Path $projectDir "open_editor.bat"),
+    (Join-Path $projectDir "README.md"),
+    (Join-Path $projectDir "scenes"),
+    (Join-Path $projectDir "scripts"),
+    (Join-Path $projectDir "shaders"),
+    (Join-Path $projectDir "web_prototype")
 )
 
-$zipPath = Join-Path $distDir "devops-nightmare.zip"
-if (Test-Path $zipPath) {
-    Remove-Item $zipPath -Force
+$lightZipPath = Join-Path $distDir "devops-nightmare.zip"
+if (Test-Path $lightZipPath) { Remove-Item $lightZipPath -Force }
+Compress-Archive -Path $sourceItems -DestinationPath $lightZipPath -CompressionLevel Optimal -Force
+$lightSizeKB = [math]::Round((Get-Item $lightZipPath).Length / 1KB, 1)
+Write-Host "[1/2] Архив проекта (для репо) обновлён: $lightZipPath ($lightSizeKB KB)" -ForegroundColor Cyan
+
+# 2. Собираем полный автономный десктопный архив с DevOpsNightmare.exe (если .exe присутствует)
+$exePath = Join-Path $projectDir "DevOpsNightmare.exe"
+$desktopZipPath = Join-Path $distDir "devops-nightmare-desktop.zip"
+if (Test-Path $exePath) {
+    if (Test-Path $desktopZipPath) { Remove-Item $desktopZipPath -Force }
+    $desktopItems = @(
+        $exePath,
+        (Join-Path $projectDir "project.godot"),
+        (Join-Path $projectDir "icon.svg"),
+        (Join-Path $projectDir "run_game.bat"),
+        (Join-Path $projectDir "README.md"),
+        (Join-Path $projectDir "scenes"),
+        (Join-Path $projectDir "scripts"),
+        (Join-Path $projectDir "shaders")
+    )
+    Compress-Archive -Path $desktopItems -DestinationPath $desktopZipPath -CompressionLevel Optimal -Force
+    $desktopSizeMB = [math]::Round((Get-Item $desktopZipPath).Length / 1MB, 1)
+    Write-Host "[2/2] Полный десктопный ZIP (с .exe) обновлён: $desktopZipPath ($desktopSizeMB MB)" -ForegroundColor Green
 }
-
-Compress-Archive -Path $files -DestinationPath $zipPath -Force
-$size = (Get-Item $zipPath).Length / 1KB
-
-Write-Host "ZIP-архив успешно собран: $zipPath ($([math]::Round($size, 1)) KB)" -ForegroundColor Green

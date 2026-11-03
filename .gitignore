@@ -1,0 +1,19 @@
+# Godot 4+ specific ignores
+.godot/
+/build/
+*.translation
+DevOpsNightmare.exe
+dist/devops-nightmare-desktop.zip
+
+# Imported textures and samples
+.import/
+
+# Mono-specific ignores
+.mono/
+data_*/
+mono_crash.*.json
+
+# OS / Editor ignores
+.DS_Store
+Thumbs.db
+*.tmp
