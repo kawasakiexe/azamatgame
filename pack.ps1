@@ -16,7 +16,6 @@ if (-not (Test-Path $distDir)) {
 $sourceItems = @(
     (Join-Path $projectDir "project.godot"),
     (Join-Path $projectDir "icon.svg"),
-    (Join-Path $projectDir "run_game.bat"),
     (Join-Path $projectDir "open_editor.bat"),
     (Join-Path $projectDir "README.md"),
     (Join-Path $projectDir "scenes"),
@@ -40,7 +39,6 @@ if (Test-Path $exePath) {
         $exePath,
         (Join-Path $projectDir "project.godot"),
         (Join-Path $projectDir "icon.svg"),
-        (Join-Path $projectDir "run_game.bat"),
         (Join-Path $projectDir "README.md"),
         (Join-Path $projectDir "scenes"),
         (Join-Path $projectDir "scripts"),
